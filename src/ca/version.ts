@@ -1,0 +1,1 @@
+export const version = "digdeeper3/ca@2" as const;

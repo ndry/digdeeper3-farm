@@ -1,0 +1,12 @@
+{
+  "scripts": {
+    "index": "ts-node -T ./src/index.ts"
+  },
+  "dependencies": {
+    "crypto-js": "^4.1.1",
+    "jimp": "^0.22.8"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.1"
+  }
+}
