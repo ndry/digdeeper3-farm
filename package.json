@@ -3,6 +3,7 @@
     "index": "ts-node -T ./src/index.ts"
   },
   "dependencies": {
+    "@tensorflow/tfjs-node": "^4.8.0",
     "crypto-js": "^4.1.1",
     "jimp": "^0.22.8"
   },

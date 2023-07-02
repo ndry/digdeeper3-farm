@@ -7,7 +7,8 @@ import { Code } from "./ca/code";
 import { parseFullTransitionLookupTable } from "./ca";
 import { fillSpace } from "./ca/fill-space";
 import { _never } from "./utils/_never";
-import { AccumulatedMap, getLeafIndex, neighborhoods, offer, processStep, windowLengths } from "./copilot";
+import { initStates, processStep } from "./nnpilot";
+import * as tf from "@tensorflow/tfjs-node";
 
 
 export const timeSizeToRender = 300;
@@ -46,7 +47,7 @@ export const playerColor = 0xff0000ff;
  */
 export function createRun({
     runId, programPathabeDate,
-    code, spaceSize, startFillState, spacetimeSeed, tickSeed, copilotMap,
+    code, spaceSize, startFillState, spacetimeSeed, tickSeed, copilotModel,
 }: {
     runId: string;
     programPathabeDate: string;
@@ -55,7 +56,7 @@ export function createRun({
     startFillState: number;
     spacetimeSeed: number;
     tickSeed: number;
-    copilotMap: AccumulatedMap;
+    copilotModel: tf.Sequential | undefined;
 }) {
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
@@ -97,18 +98,8 @@ export function createRun({
     };
 
 
-    const currentCopilotStates = [] as number[][];
-    const currentCopilotMap =
-        JSON.parse(JSON.stringify(copilotMap)) as AccumulatedMap;
-
-    for (let ni = 0; ni < neighborhoods.length; ni++) {
-        for (let wi = 0; wi < windowLengths.length; wi++) {
-            const li = getLeafIndex(wi, ni);
-            currentCopilotStates[li] = [];
-            currentCopilotMap[li] = {};
-        }
-    }
-
+    const currentCopilotStates = initStates();
+    const data = [] as [number[], number][];
     const playerPosition: [number, number] = [
         Math.floor(spaceSize / 2),
         0,
@@ -138,18 +129,21 @@ export function createRun({
             return false;
         }
 
-        const theOffer = offer(
-            currentCopilotStates,
-            copilotMap);
 
         let direction: 0 | 1 | 2 | 3;
         if (tickRandom.nextFloat() < 1) {
-            if (theOffer) {
+            if (copilotModel) {
+                const t = copilotModel.predict([
+                    tf.tensor([currentCopilotStates.flatMap(x => x)])
+                ]) as tf.Tensor;
+                const theOffer = [...t.dataSync()];
+                // console.log({ theOffer });
+
                 const sorted = theOffer
                     .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
                     .filter(([i]) => possibleDirections.includes(i))
                     .sort((a, b) => b[1] - a[1]);
-                if (sorted[0][1] > 5) {
+                if (sorted[0][1] > 0.7) {
                     // console.log("Copilot is sure");
                     const maxes = sorted.filter(([, v]) => v === sorted[0][1]);
                     direction = maxes[tickRandom.next() % maxes.length][0];
@@ -163,26 +157,19 @@ export function createRun({
             direction = possibleDirections[tickRandom.next() % possibleDirections.length];
         }
 
-        for (let ni = 0; ni < neighborhoods.length; ni++) {
-            for (let wi = 0; wi < windowLengths.length; wi++) {
-                const li = getLeafIndex(wi, ni);
-                processStep(
-                    currentCopilotStates[li],
-                    currentCopilotMap[li],
-                    stateCount,
-                    playerPosition,
-                    atWithBounds,
-                    windowLengths[wi],
-                    neighborhoods[ni],
-                    direction);
-            }
-        }
+        data.push(processStep(
+            currentCopilotStates,
+            playerPosition,
+            playerEnergy,
+            atWithBounds,
+            direction));
 
         playerPosition[0] += directionVec[direction][0];
         playerPosition[1] += directionVec[direction][1];
         const s = at(playerPosition[1], playerPosition[0]);
         if (s === 2) { playerEnergy++; }
         if (s === 1) { playerEnergy -= 9; }
+        ensureSpacetime(playerPosition[1] + 1) // ensure next slice before altering current
         spacetime[playerPosition[1]][playerPosition[0]] = 0;
         maxDepth = Math.max(maxDepth, playerPosition[1]);
 
@@ -221,7 +208,8 @@ export function createRun({
         stats() {
             return {
                 maxDepth,
-                copilotMap: currentCopilotMap,
+                copilotModel,
+                data,
             }
         }
     };

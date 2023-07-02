@@ -2,8 +2,11 @@ import { generateRandomRule } from "./ca/generate-random-rule";
 import { LehmerPrng } from "./utils/lehmer-prng";
 import { createRun } from "./run";
 import { version as caVersion } from "./ca";
+import { train } from "./nnpilot";
+import * as  tf from "@tensorflow/tfjs-node";
+import util from "util";
 
-
+util.inspect.defaultOptions.depth = 10;
 
 
 const code = {
@@ -16,17 +19,17 @@ const spaceSize = 161;
 
 const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
 (async () => {
-    const zones = Array.from({ length: 10 }, (_, i) => 4242 + i);
+    const zones = Array.from({ length: 4 }, (_, i) => 4242 + i);
 
     let nextAgents = [
-        [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
-    ];
+        undefined,
+    ] as (undefined | tf.Sequential)[];
     for (let i = 0; i < 999; i++) {
         const pathableDate = new Date().toISOString().replace(/:/g, "-");
         const completedRuns = await Promise.all(
             zones.flatMap((zone) =>
-                nextAgents.map(async (copilotMap, j) => {
-                    const runId = pathableDate+ "-" + j
+                nextAgents.map(async (model, j) => {
+                    const runId = pathableDate + "-" + j
                     const run = createRun({
                         runId,
                         programPathabeDate,
@@ -35,7 +38,7 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
                         startFillState: 0,
                         spacetimeSeed: zone,
                         tickSeed: 4243 + i * 13 + j * 17 + i * j * 19,
-                        copilotMap,
+                        copilotModel: model,
                     });
                     await run.render();
 
@@ -57,9 +60,14 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
             maxDepths: bestRuns.map((run) => run.stats().maxDepth),
             maxestDepth,
         });
+        const bestModels = await Promise.all(
+            bestRuns.map(async run => {
+                const stats = run.stats();
+                return await train(stats.copilotModel, stats.data);
+            }));
         nextAgents = [
-            ...bestRuns.map((run) => run.stats().copilotMap),
-            [{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}],
+            ...bestModels,
+            undefined,
         ];
     }
 })();
