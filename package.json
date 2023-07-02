@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "index": "ts-node -T ./src/index.ts"
+    "index": "ts-node -T ./src/index.ts",
+    "index2": "ts-node -T ./src/index2.ts"
   },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.8.0",
