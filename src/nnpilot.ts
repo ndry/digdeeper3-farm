@@ -2,14 +2,18 @@ import * as tf from "@tensorflow/tfjs-node";
 import { v2 } from "./utils/v";
 import { tuple } from "./utils/tuple";
 
-export const neighborhood = [
-    [-2, 0],
-    [-1, -1], [-1, 0], [-1, 1],
-    [0, -2], [0, -1], [0, 0], [0, 1], [0, 2],
-    [1, -1], [1, 0], [1, 1],
-    [2, 0],
-];
-export const windowLength = 10;
+
+export const neighborhood = [...(function* () {
+    const r = 4;
+    for (let dt = -2; dt <= 2; dt++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            if (Math.abs(dt) + Math.abs(dx) <= r) {
+                yield [dt, dx] as v2;
+            }
+        }
+    }
+})()];
+export const windowLength = 1;
 
 // export const neighborhood = [
 //     [-1, 0],
@@ -22,7 +26,7 @@ export const initStates = () => {
     return Array.from(
         { length: windowLength },
         () => [
-            ...neighborhood.map(() => 999),
+            ...neighborhood.flatMap(() => [0, 0, 0, 0]),
             0,
         ],
     );
@@ -41,7 +45,15 @@ export const processStep = (
 ) => {
     const state = [
         ...neighborhood
-            .map(([dx, dt]) => atWithBounds(playerPosition[1] + dt, playerPosition[0] + dx)),
+            .flatMap(([dx, dt]) => {
+                const st = atWithBounds(playerPosition[1] + dt, playerPosition[0] + dx);
+                return [
+                    st === 0 ? 1 : 0,
+                    st === 1 ? 1 : 0,
+                    st === 2 ? 1 : 0,
+                    st === 3 ? 1 : 0, // bounds
+                ];
+            }),
         playerEnergy,
     ];
     neighborhoodStates.push(state);
@@ -61,7 +73,7 @@ export const train = async (
         units: 250,
         activation: 'relu',
         inputShape: [
-            (neighborhood.length + 1) * windowLength,
+            (neighborhood.length * 4 + 1) * windowLength,
         ]
     }));
     model.add(tf.layers.dense({ units: 175, activation: 'relu' }));
@@ -78,17 +90,13 @@ export const train = async (
         model.setWeights(_model.getWeights());
     }
 
-    const numTrainingIterations = 1;
-    for (var i = 0; i < numTrainingIterations; i++) {
-        console.log(`Training iteration : ${i + 1} / ${numTrainingIterations}`);
-        await model.fit(
-            tf.tensor(data.map(([x, y]) => x)),
-            tf.tensor(data.map(([x, y]) => y)),
-            {
-                epochs: 1,
-            }
-        )
-    }
+    await model.fit(
+        tf.tensor(data.map(([x, y]) => x)),
+        tf.tensor(data.map(([x, y]) => y)),
+        {
+            epochs: 15,
+        }
+    )
 
     return model;
 }

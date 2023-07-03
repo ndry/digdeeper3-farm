@@ -130,27 +130,25 @@ export function createRun({
         }
 
 
-        let direction: 0 | 1 | 2 | 3;
-        if (tickRandom.nextFloat() < 1) {
-            if (copilotModel) {
-                const t = copilotModel.predict([
-                    tf.tensor([currentCopilotStates.flatMap(x => x)])
-                ]) as tf.Tensor;
-                const theOffer = [...t.dataSync()];
-                // console.log({ theOffer });
+        let direction: 0 | 1 | 2 | 3 | undefined = undefined;
+        if (copilotModel) {
+            const t = copilotModel.predict([
+                tf.tensor([currentCopilotStates.flatMap(x => x)])
+            ]) as tf.Tensor;
+            const theOffer = [...t.dataSync()];
+            // console.log({ theOffer });
 
-                const sorted = theOffer
-                    .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
-                    .filter(([i]) => possibleDirections.includes(i))
-                    .sort((a, b) => b[1] - a[1]);
-                if (sorted[0][1] > 0.7) {
-                    // console.log("Copilot is sure");
-                    const maxes = sorted.filter(([, v]) => v === sorted[0][1]);
-                    direction = maxes[tickRandom.next() % maxes.length][0];
-                } else {
-                    direction = possibleDirections[tickRandom.next() % possibleDirections.length];
+            const sorted = theOffer
+                .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
+                .filter(([i]) => possibleDirections.includes(i))
+                .sort((a, b) => b[1] - a[1]);
+            for (const [i, v] of sorted) {
+                if (tickRandom.nextFloat() < v) {
+                    direction = i;
+                    break;
                 }
-            } else {
+            }
+            if (direction === undefined) {
                 direction = possibleDirections[tickRandom.next() % possibleDirections.length];
             }
         } else {
@@ -194,8 +192,8 @@ export function createRun({
             "output",
             `grun_${programPathabeDate}`,
             `rule_${code.rule}`,
-            `zone_${spacetimeSeed.toString()}`,
             `run_${runId}`,
+            `zone_${spacetimeSeed.toString()}`,
             `${i}_md${maxDepth}.png`);
         await fs.mkdir(path.dirname(p), { recursive: true });
         await image.writeAsync(p);

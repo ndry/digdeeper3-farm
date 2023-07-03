@@ -5,6 +5,8 @@ import { version as caVersion } from "./ca";
 import { train } from "./nnpilot";
 import * as  tf from "@tensorflow/tfjs-node";
 import util from "util";
+import { promises as fs } from "fs";
+import path from "path";
 
 util.inspect.defaultOptions.depth = 10;
 
@@ -12,19 +14,38 @@ util.inspect.defaultOptions.depth = 10;
 const code = {
     v: caVersion,
     stateCount: 3,
-    rule: "125432894114651584386512079219058453323",
+    rule: "299995569439125313185844037724571538281",
 }
 const spaceSize = 161;
 
 
 const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
 (async () => {
-    const zones = Array.from({ length: 4 }, (_, i) => 4242 + i);
+    const zonesRandom = new LehmerPrng(4242);
 
     let nextAgents = [
         undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
     ] as (undefined | tf.Sequential)[];
     for (let i = 0; i < 999; i++) {
+        const zones = Array.from({ length: 1 }, (_, k) => 4242);
         const pathableDate = new Date().toISOString().replace(/:/g, "-");
         const completedRuns = await Promise.all(
             zones.flatMap((zone) =>
@@ -42,19 +63,28 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
                     });
                     await run.render();
 
-                    for (let i = 0; i <= 1000; i++) {
+                    for (let i = 0; i <= 10000; i++) {
                         if (!run.tick()) { break; }
-                        if (i % 100 === 0) {
+                        if (i % 500 === 0) {
                             await run.render();
+                        }
+                        if (run.stats().maxDepth < i / 50 - 10) {
+                            await run.render();
+                            console.log({ gameOver: "Enough is enough" });
+                            break;
                         }
                     }
 
                     // console.log({ runId, zone, stats: run.stats() });
+                    await fs.appendFile(
+                        path.join("output", "runs.csv"),
+                        [runId, run.stats().maxDepth].join(",") + "\n",
+                    );
                     return run;
                 })));
         const bestRuns = [...completedRuns]
             .sort((a, b) => b.stats().maxDepth - a.stats().maxDepth)
-            .slice(0, 20);
+            .slice(0, 4);
         const maxestDepth = bestRuns[0].stats().maxDepth;
         console.log({
             maxDepths: bestRuns.map((run) => run.stats().maxDepth),
@@ -67,6 +97,7 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
             }));
         nextAgents = [
             ...bestModels,
+            undefined,
             undefined,
         ];
     }
