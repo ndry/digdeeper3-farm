@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { MainScene } from "./main-scene/main-scene";
 import { NoToneMapping } from "three";
 import { appVersion } from "~appVersion";
-import { memo, useRef, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 import { useGrabFocusFromBody } from "../utils/reactish/use-grab-focus-from-body";
 import { X as CloseIcon } from "@emotion-icons/boxicons-regular/X";
 import "@fontsource/noto-sans-mono";
@@ -21,6 +21,8 @@ import { VolumeMute } from "@emotion-icons/fa-solid/VolumeMute";
 import { VolumeUp } from "@emotion-icons/fa-solid/VolumeUp";
 import { RulePreview } from "./rule-preview";
 import { generateRandomRule } from "../ca/generate-random-rule";
+import * as tf from "@tensorflow/tfjs";
+
 
 // eslint-disable-next-line no-console 
 console.log("appVersion", appVersion);
@@ -57,6 +59,62 @@ export function App() {
     const [muteSounds, setMuteSounds] = useRecoilState(muteSoundsRecoil);
     const focusRootRef = useRef<HTMLDivElement>(null);
     useGrabFocusFromBody(focusRootRef);
+
+    const x = useMemo(() => {
+        (async () => {
+
+            const data = [
+                [[1, 1, 0], 0],
+                [[1, 0, 1], 1],
+                [[0, 1, 1], 2],
+                [[0, 0, 0], 0],
+                [[0, 1, 0], 0],
+                [[0, 0, 1], 1],
+                [[0, 1, 1], 2],
+                [[1, 0, 0], 0],
+
+            ] as [number[], number][];
+
+            const model = tf.sequential();
+            model.add(tf.layers.dense({
+                units: 250,
+                activation: "relu",
+                inputShape: [
+                    data[0][0].length,
+                ]
+            }));
+            model.add(tf.layers.dense({ units: 175, activation: "relu" }));
+            model.add(tf.layers.dense({ units: 150, activation: "relu" }));
+            model.add(tf.layers.dense({ units: 3, activation: "softmax" }));
+
+            model.compile({
+                optimizer: tf.train.adam(),
+                loss: "sparseCategoricalCrossentropy",
+                metrics: ["accuracy"]
+            });
+
+
+            const numTrainingIterations = 10;
+            for (let i = 0; i < numTrainingIterations; i++) {
+                console.log(`Training iteration : ${i + 1} / ${numTrainingIterations}`);
+                await model.fit(
+                    tf.tensor(data.map(([x]) => x)),
+                    tf.tensor(data.map(([, y]) => y)),
+                    {
+                        epochs: 1,
+                    },
+                )
+            }
+
+            const p = (model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
+                .dataSync();
+
+
+            console.log(p);
+
+        })();
+
+    }, []);
 
     const [isDisclaimerShown, setIsDisclaimerShown] = useState(false);
 

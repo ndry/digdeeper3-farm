@@ -16,6 +16,7 @@
     "@rauschma/iterator-helpers-polyfill": "^0.7.0",
     "@react-three/drei": "^9.77.7",
     "@react-three/fiber": "^8.13.4",
+    "@tensorflow/tfjs": "^4.8.0",
     "@types/color": "^3.0.3",
     "@types/crypto-js": "^4.1.1",
     "@types/d3-ease": "^3.0.0",
