@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "strict": true,
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "Node",
+        "isolatedModules": true,
+        "allowSyntheticDefaultImports": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+        "resolveJsonModule": true,
+    },
+    "files": [
+        "./vite.config.ts"
+    ]
+}

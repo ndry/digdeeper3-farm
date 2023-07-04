@@ -76,8 +76,8 @@ export const train = async (
             (neighborhood.length * 4 + 1) * windowLength,
         ]
     }));
-    model.add(tf.layers.dense({ units: 175, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 150, activation: 'relu' }));
+    model.add(tf.layers.dense({ units: 27, activation: 'relu' }));
+    model.add(tf.layers.dense({ units: 27, activation: 'relu' }));
     model.add(tf.layers.dense({ units: 4, activation: 'softmax' }));
 
     model.compile({
@@ -94,7 +94,7 @@ export const train = async (
         tf.tensor(data.map(([x, y]) => x)),
         tf.tensor(data.map(([x, y]) => y)),
         {
-            epochs: 15,
+            epochs: 1,
         }
     )
 

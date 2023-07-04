@@ -1,0 +1,21 @@
+{
+    "compilerOptions": {
+        "jsx": "preserve",
+        "jsxImportSource": "@emotion/react",
+        "strict": true,
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "isolatedModules": true,
+        "allowSyntheticDefaultImports": true,
+        "noEmit": true,
+        "skipLibCheck": true,
+    },
+    "files": [
+        "./node_modules/vite/client.d.ts", 
+        "vite.config/app-version-plugin/client.d.ts",
+        "./node_modules/@rauschma/iterator-helpers-polyfill/dist/src/install.d.ts"
+    ],
+    "include": ["./src/"],
+    "exclude": ["./vite.config/"]
+}

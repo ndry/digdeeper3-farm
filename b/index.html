@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width,initial-scale=1">
+
+	<title>digdeeper3-farm-b</title>
+	<meta name="description" content="digdeeper3-farm-b">
+
+	<link rel="icon" sizes="any" href="./favicon.ico">
+	<link rel="icon" type="image/svg+xml" href="./favicon.svg">
+	<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+	<meta name="theme-color" content="#f4f1ff">
+
+</head>
+
+<body style="
+	margin: 0; 
+	background-color: #0a000d;
+	color: white;
+	touch-action: manipulation;
+">
+	<div id="root"></div>
+	<script type="module">
+		import "@rauschma/iterator-helpers-polyfill/install";
+		import { createRoot } from "react-dom/client";
+		import { createElement } from "react";
+		import { RecoilRoot } from "recoil";
+
+		import { App } from "./src/app/app";
+		// import { Xyz } from "./src/blah/xyz";
+
+		const SearchComponent = (() => {
+			const s = new URLSearchParams(location.search);
+			// if (s.has("Xyz")) { return Xyz; }
+		})() ?? App;
+
+		const Component =
+			(import.meta.env.DEV && await (async () => {
+				return; // todo: add dash-case support
+
+				const path = location.pathname;
+				if (path === "/") { return; }
+				const name = path.substring(path.lastIndexOf("/") + 1);
+				console.log(path, name);
+				if (!name) { return; }
+				return (await import(/* @vite-ignore */"./src" + path))[name];
+			})()) || SearchComponent;
+
+		createRoot(document.getElementById("root")).render(
+			createElement(RecoilRoot, null,
+				createElement(Component, { standalone: true })
+			),
+		);
+
+	</script>
+</body>
+
+</html>

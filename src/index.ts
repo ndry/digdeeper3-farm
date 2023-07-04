@@ -66,7 +66,7 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
                     for (let i = 0; i <= 10000; i++) {
                         if (!run.tick()) { break; }
                         if (i % 500 === 0) {
-                            await run.render();
+                            // await run.render();
                         }
                         if (run.stats().maxDepth < i / 50 - 10) {
                             await run.render();
@@ -80,6 +80,7 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
                         path.join("output", "runs.csv"),
                         [runId, run.stats().maxDepth].join(",") + "\n",
                     );
+                    await run.render();
                     return run;
                 })));
         const bestRuns = [...completedRuns]
