@@ -154,7 +154,11 @@ export const run = ({
 };
 
 
-export default function () {
+export function Sim({
+    i
+}: {
+    i: number,
+}) {
     const {
         seed,
         scale,
@@ -165,11 +169,21 @@ export default function () {
         spaceSize: { value: 91, min: 2, max: 1000, step: 1 },
     });
 
+    // const {
+    //     seed,
+    //     scale,
+    //     spaceSize,
+    // } = useControls({
+    //     seed: 4242,
+    //     scale: 3,
+    //     spaceSize: 91,
+    // });
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const theRun = useMemo(() => run({
         seed,
-        spacetimeSeed: seed + 1,
-        tickSeed: seed + 2,
+        spacetimeSeed: seed + i + 1,
+        tickSeed: seed + i + 2,
         spaceSize,
         code,
         startFillState: 0,
@@ -236,7 +250,16 @@ export default function () {
 
     }, [canvasRef.current, seed, scale, theRun]);
 
-    return <div>
+    return <div css={{ padding: "2px" }}>
         <canvas ref={canvasRef} />
+    </div>;
+}
+
+export default function App() {
+    return <div css={{ display: "flex", flexDirection: "row" }}>
+        <Sim i={3123} />
+        <Sim i={3232} />
+        <Sim i={2129} />
+        <Sim i={2953} />
     </div>;
 }
