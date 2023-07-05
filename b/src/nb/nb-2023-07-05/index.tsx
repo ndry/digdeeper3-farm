@@ -208,7 +208,7 @@ export function Sim({
 
         let handle: number;
         const render = () => {
-            for (let i = 0; i < 1000; i++) {
+            for (let i = 0; i < 10000; i++) {
                 theRun.tick();
             }
 
