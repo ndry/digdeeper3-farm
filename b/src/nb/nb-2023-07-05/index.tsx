@@ -7,13 +7,13 @@ import { useControls } from "leva";
 const code = {
     v: caVersion,
     stateCount: 3,
-    rule: "299995569439125313185844037724571538281",
+    rule: "125432894114651584386512079219058453323",
 }
 
 export const colorMap = [
-    "#ff0000",
-    "#00ff00",
-    "#0000ff",
+    "#8000ff", // empty
+    "#000000", // wall
+    "#80ff00", // empty
 ] as const;
 
 
@@ -21,19 +21,11 @@ export default function () {
     const {
         seed,
         scale,
+        spaceSize,
     } = useControls({
-        seed: {
-            value: 4242,
-            min: 1,
-            max: 0xffffffff,
-            step: 1,
-        },
-        scale: {
-            value: 3,
-            min: 1,
-            max: 10,
-            step: 1,
-        },
+        seed: { value: 4242, min: 1, max: 0xffffffff, step: 1 },
+        scale: { value: 4, min: 1, max: 10, step: 1 },
+        spaceSize: { value: 61, min: 2, max: 1000, step: 1 },
     });
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -42,7 +34,7 @@ export default function () {
         if (!canvas) return;
 
 
-        const w = 61;
+        const w = spaceSize;
         const h = 200;
         const pixelsPerCell = 1;
         canvas.width = w * pixelsPerCell;
@@ -56,7 +48,7 @@ export default function () {
 
         const theCa = createSpacetimeEvaluator({
             code,
-            spaceSize: h,
+            spaceSize,
             timeSize: w,
             startFillState: 0,
             seed,
@@ -78,7 +70,7 @@ export default function () {
             0, 0, canvas.width / scale, canvas.height / scale,
             0, 0, canvas.width, canvas.height);
 
-    }, [canvasRef.current, seed, scale]);
+    }, [canvasRef.current, seed, scale, spaceSize]);
 
     return <div>
         <canvas ref={canvasRef} />
