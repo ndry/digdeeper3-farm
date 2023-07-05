@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { jsx } from "@emotion/react";
 import { Star } from "@emotion-icons/ionicons-solid/Star";
-import { useToggleRuleBookmark } from "./bookmarked-rules-recoil";
 import { createFullCanvasImageData32 } from "../utils/create-image-data32";
 import { Code, keyifyCode } from "../ca/code";
 import { createSpacetimeEvaluator } from "../ca/create-spacetime-evaluator";
@@ -21,7 +20,6 @@ export function RulePreview({
     additionalDetails?: string,
     code: Code,
 } & jsx.JSX.IntrinsicElements["div"]) {
-    const [isBookmarked, toggleBookmark] = useToggleRuleBookmark(code);
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -75,24 +73,6 @@ export function RulePreview({
         {...props}
     >
         <div css={{ position: "relative" }}>
-            <div
-                css={[{
-                    position: "absolute",
-                    margin: "3%",
-                    top: 0,
-                    right: 0,
-                    borderRadius: "4px",
-                    backgroundColor: "#A8E7D8",
-                    padding: "0.5%",
-                    width: "5%",
-                }]}
-            >
-                <Star
-                    onClick={toggleBookmark}
-                    color={isBookmarked ? "#D84949" : "#444444"}
-                    // css={[{ width: "100%" }]}
-                />
-            </div>
             <canvas ref={canvasRef} css={[{ imageRendering: "pixelated" }]} />
         </div>
     </div>;
