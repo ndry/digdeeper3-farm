@@ -5,16 +5,6 @@ import { _never } from "../../utils/_never";
 import { LehmerPrng, createLehmer32 } from "../../utils/lehmer-prng";
 import { tuple } from "../../utils/tuple";
 
-
-export const colorMap = [
-    "#8000ff", // empty
-    "#000000", // wall
-    "#80ff00", // energy
-] as const;
-
-
-export const playerColor = "#ff0000ff";
-
 export const forward = 0;
 export const left = 1;
 export const right = 2;
@@ -89,6 +79,8 @@ export const run = ({
 
     const at = (t: number, x: number) => {
         evaluateSpacetime(t);
+        const s = spacetime[t][x];
+        if (s === stateCount) { return s; } // visited
         return stateMap[spacetime[t][x]];
     };
 
@@ -111,6 +103,7 @@ export const run = ({
                 if (nt < depth) { return false; }
                 if (nx < 1 || nx >= spaceSize - 1) { return false; }
                 const s = at(nt, nx);
+                if (s === stateCount) { return true; } // visited
                 if (s === 0) { return true; } // empty
                 if (s === 1) { return false; } // wall
                 // if (s === 1) { return playerEnergy >= 9; } // wall
@@ -133,8 +126,8 @@ export const run = ({
         const s = at(playerPosition[1], playerPosition[0]);
         if (s === 2) { playerEnergy++; }
         if (s === 1) { playerEnergy -= 9; }
-        evaluateSpacetime(playerPosition[1] + 2) // ensure next slice before altering current
-        spacetime[playerPosition[1]][playerPosition[0]] = iStateMap[0];
+        evaluateSpacetime(playerPosition[1] + 3) // ensure next slice before altering current
+        spacetime[playerPosition[1]][playerPosition[0]] = stateCount;
         maxDepth = Math.max(maxDepth, playerPosition[1]);
         depth = Math.max(0, maxDepth - depthLeftBehind);
 

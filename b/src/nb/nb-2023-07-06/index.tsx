@@ -9,6 +9,7 @@ export const colorMap = [
     "#8000ff", // empty
     "#000000", // wall
     "#80ff00", // energy
+    "#a00000", // visited
 ] as const;
 export const playerColor = "#ff0000ff";
 
