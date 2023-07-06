@@ -107,7 +107,6 @@ export function App() {
                 pointerEvents: "all",
             }}>
                 {[
-                    "./nb/nb-2023-07-05/",
                     "./nb/nb-2023-07-06/",
                 ].map((path, i) => <a
                     css={{ display: "block" }}
