@@ -14,6 +14,7 @@ export const colorMap = [
 ] as const;
 export const playerColor = "#ff0000ff";
 
+
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
