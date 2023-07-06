@@ -1,2 +1,8 @@
-node_modules
-output
+node_modules/
+.env.local
+.env
+/dist-packs/
+/dist/
+/dist*/
+.idea
+.DS_Store

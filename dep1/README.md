@@ -1,0 +1,1 @@
+`npm i`, then run simulation with `npm run index`

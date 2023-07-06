@@ -8,7 +8,6 @@ export function createSpacetimeEvaluator({
 }: {
     code: Code;
     spaceSize: number;
-    timeSize: number;
     startFillState: number;
     seed: number;
 }) {
