@@ -108,6 +108,7 @@ export function App() {
             }}>
                 {[
                     "./nb/nb-2023-07-06/",
+                    "?nb_nb_2023_07_06",
                 ].map((path, i) => <a
                     css={{ display: "block" }}
                     key={i}
