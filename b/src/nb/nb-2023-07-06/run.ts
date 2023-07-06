@@ -92,6 +92,7 @@ export const run = ({
     let maxDepth = 0;
     let tickCount = 0;
     let depth = 0;
+    let speed = 0;
     const tickRandom = new LehmerPrng(tickSeed);
 
     const tick = () => {
@@ -128,8 +129,11 @@ export const run = ({
         if (s === 1) { playerEnergy -= 9; }
         evaluateSpacetime(playerPosition[1] + 3) // ensure next slice before altering current
         spacetime[playerPosition[1]][playerPosition[0]] = stateCount;
-        maxDepth = Math.max(maxDepth, playerPosition[1]);
-        depth = Math.max(0, maxDepth - depthLeftBehind);
+        if (playerPosition[1] >= maxDepth) {
+            maxDepth = playerPosition[1];
+            depth = Math.max(0, maxDepth - depthLeftBehind);
+            speed = maxDepth / tickCount;
+        }
 
         return true;
     };
@@ -141,6 +145,7 @@ export const run = ({
         get playerPositionX() { return playerPosition[0]; },
         get playerPositionT() { return playerPosition[1]; },
         get tickCount() { return tickCount; },
+        get speed() { return speed; },
         tick,
         at,
     };

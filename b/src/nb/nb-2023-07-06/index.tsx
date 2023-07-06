@@ -175,6 +175,7 @@ export default function App() {
                     {i} :
                     maxDepth: {run.maxDepth}
                     &nbsp;/ depth: {run.depth}
+                    &nbsp;/ speed: {run.speed.toExponential(2)}
                 </div>;
             })}
         </div>
