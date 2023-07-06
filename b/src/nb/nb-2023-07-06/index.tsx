@@ -82,13 +82,6 @@ export default function App() {
     }, [runs, isRunning]);
     const selectedRunWithNum = runs[selectedRunIndex];
 
-    // render it as a canvas
-    // make play/pause/step buttons
-    // make player auto adust speed to not lag
-    // show player speed (ticks per second)
-    // let adjust player speed
-
-
     const soretedRuns = [...runs]
         .sort((a, b) => b.run.maxDepth - a.run.maxDepth);
 
