@@ -108,7 +108,12 @@ export function App() {
             }}>
                 {[
                     "./nb/nb-2023-07-05/",
-                ].map((path, i) => <a key={i} href={path}>{path}</a>)}
+                    "./nb/nb-2023-07-06/",
+                ].map((path, i) => <a
+                    css={{ display: "block" }}
+                    key={i}
+                    href={path}
+                >{path}</a>)}
                 <RulePreview code={generateRandomRule(3)} />
                 <RulePreview code={generateRandomRule(3)} />
                 <RulePreview code={generateRandomRule(3)} />

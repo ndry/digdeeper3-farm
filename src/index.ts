@@ -14,7 +14,7 @@ util.inspect.defaultOptions.depth = 10;
 const code = {
     v: caVersion,
     stateCount: 3,
-    rule: "299995569439125313185844037724571538281",
+    rule: "299338136518556439977845337106716710210",
 }
 const spaceSize = 161;
 
@@ -63,7 +63,7 @@ const programPathabeDate = new Date().toISOString().replace(/:/g, "-");
                     });
                     await run.render();
 
-                    for (let i = 0; i <= 10000; i++) {
+                    for (let i = 0; i <= 100000; i++) {
                         if (!run.tick()) { break; }
                         if (i % 500 === 0) {
                             // await run.render();

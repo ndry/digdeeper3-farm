@@ -33,14 +33,14 @@ import * as tf from "@tensorflow/tfjs-node";
     });
 
 
-    const numTrainingIterations = 10;
+    const numTrainingIterations = 1;
     for (var i = 0; i < numTrainingIterations; i++) {
         console.log(`Training iteration : ${i + 1} / ${numTrainingIterations}`);
         await model.fit(
             tf.tensor(data.map(([x, y]) => x)),
             tf.tensor(data.map(([x, y]) => y)),
             {
-                epochs: 1,
+                epochs: 1000,
             }
         )
     }

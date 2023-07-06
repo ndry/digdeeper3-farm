@@ -5,7 +5,7 @@ import { createSpacetimeEvaluator } from "../../ca/create-spacetime-evaluator";
 import { useControls } from "leva";
 import { Code } from "../../ca/code";
 import { parseFullTransitionLookupTable } from "../../ca";
-import { LehmerPrng } from "../../utils/lehmer-prng";
+import { LehmerPrng, createLehmer32 } from "../../utils/lehmer-prng";
 import { fillSpace } from "../../ca/fill-space";
 import { _never } from "../../utils/_never";
 import { tuple } from "../../utils/tuple";
@@ -21,15 +21,15 @@ export const colorMap = [
     "#000000", // wall
     "#80ff00", // energy
 ] as const;
+export const playerColor = "#ff0000ff";
 
-const stateMap = [0, 1, 2];
+const stateMap = [0, 1, 2] as const;
 const iStateMap = [
     stateMap.indexOf(0),
     stateMap.indexOf(1),
     stateMap.indexOf(2),
 ];
 
-export const playerColor = "#ff0000ff";
 
 export const forward = 0;
 export const left = 1;
@@ -59,26 +59,35 @@ export const run = ({
     code: Code,
     startFillState: number,
     depthLeftBehind: number,
+    stateMap: readonly [number, number, number],
 }) => {
+    const iStateMap = [
+        stateMap.indexOf(0),
+        stateMap.indexOf(1),
+        stateMap.indexOf(2),
+    ] as const;
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
-    const spacetimeRandom = new LehmerPrng(spacetimeSeed);
+    const spacetimeRandom32 = createLehmer32(spacetimeSeed);
 
     /**
      * Spacetime is evolved per request
      * and cell are mutable (energy or walls would become empty)
      */
     const spacetime = [
-        Array.from({ length: spaceSize }, () => iStateMap[startFillState]),
-        Array.from({ length: spaceSize }, () => spacetimeRandom.next() % stateCount),
-        Array.from({ length: spaceSize }, () => spacetimeRandom.next() % stateCount),
+        Array.from({ length: spaceSize },
+            () => iStateMap[startFillState]),
+        Array.from({ length: spaceSize },
+            () => spacetimeRandom32() % stateCount),
+        Array.from({ length: spaceSize },
+            () => spacetimeRandom32() % stateCount),
     ];
 
-    const ensureSpacetime = (t: number) => {
+    const evaluateSpacetime = (t: number) => {
         while (t >= spacetime.length) {
-            const space = Array.from({ length: spaceSize }, () => 0);
-            space[0] = spacetimeRandom.next() % stateCount;
-            space[space.length - 1] = spacetimeRandom.next() % stateCount;
+            const space = new Array(spacetime[0].length);
+            space[0] = spacetimeRandom32() % stateCount;
+            space[space.length - 1] = spacetimeRandom32() % stateCount;
             spacetime.push(space);
             fillSpace(
                 stateCount,
@@ -90,7 +99,7 @@ export const run = ({
     };
 
     const at = (t: number, x: number) => {
-        ensureSpacetime(t);
+        evaluateSpacetime(t);
         return stateMap[spacetime[t][x]];
     };
 
@@ -135,7 +144,7 @@ export const run = ({
         const s = at(playerPosition[1], playerPosition[0]);
         if (s === 2) { playerEnergy++; }
         if (s === 1) { playerEnergy -= 9; }
-        ensureSpacetime(playerPosition[1] + 2) // ensure next slice before altering current
+        evaluateSpacetime(playerPosition[1] + 2) // ensure next slice before altering current
         spacetime[playerPosition[1]][playerPosition[0]] = iStateMap[0];
         maxDepth = Math.max(maxDepth, playerPosition[1]);
         depth = Math.max(0, maxDepth - depthLeftBehind);
@@ -188,6 +197,7 @@ export function Sim({
         code,
         startFillState: 0,
         depthLeftBehind: 200,
+        stateMap,
     }), [seed, spaceSize, code]);
 
     useLayoutEffect(() => {
@@ -255,7 +265,7 @@ export function Sim({
     </div>;
 }
 
-export default function App() {
+export default function _App() {
     return <div css={{ display: "flex", flexDirection: "row" }}>
         <Sim i={3123} />
         <Sim i={3232} />
