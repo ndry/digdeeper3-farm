@@ -3,6 +3,7 @@ import { run } from "./run";
 import { version as caVersion } from "../../ca/version";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
+import "@fontsource/noto-sans-mono";
 
 
 export const colorMap = [
@@ -19,17 +20,12 @@ export default function App() {
     const [selectedRunIndex, setSelectedRunIndex] = useState(0);
 
     function step(ticks: number) {
-        const perfStart = performance.now();
         for (const run of runs) {
             for (let i = 0; i < ticks; i++) {
                 run.run.tick();
             }
         }
-        const perfEnd = performance.now();
         setRenderTrigger(t => t + 1);
-        const dt = perfEnd - perfStart;
-        console.log({ "tick + setRenderTrigger": dt, ticks });
-        return dt;
     }
 
     const {
@@ -38,10 +34,10 @@ export default function App() {
         spaceSize,
         runCount,
     } = useControls({
-        seed: { value: 4242, min: 1, max: 0xffffffff, step: 1 },
+        seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
-        spaceSize: { value: 151, min: 2, max: 1000, step: 1 },
-        runCount: { value: 100, min: 1, max: 2000, step: 1 },
+        spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
+        runCount: { value: 40, min: 1, max: 2000, step: 1 },
     });
 
     const { runs } = useMemo(() => {
@@ -59,7 +55,7 @@ export default function App() {
                 spacetimeSeed: seed,
                 startFillState: 0,
                 tickSeed: seed + i * 10000 + i * 2,
-                stateMap: [0, 1, 2],
+                stateMap: [2, 0, 1],
             }),
         }));
 
@@ -77,14 +73,20 @@ export default function App() {
 
         const handle = setInterval(() => {
             lastTicks = Math.max(1, lastTicks * (targetDt / lastDt));
-            lastDt = step(lastTicks);
+            const perfStart = performance.now();
+            step(lastTicks);
+            const perfEnd = performance.now();
+            lastDt = perfEnd - perfStart;
+            console.log({ "tick + setRenderTrigger": lastDt, lastTicks });
         }, targetDt * 1.1);
         return () => clearInterval(handle);
     }, [runs, isRunning]);
     const selectedRunWithNum = runs[selectedRunIndex];
 
     const soretedRuns = [...runs]
-        .sort((a, b) => b.run.maxDepth - a.run.maxDepth);
+        .sort((a, b) =>
+            (b.run.maxDepth - a.run.maxDepth)
+            || (b.run.speed - a.run.speed));
 
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -148,10 +150,35 @@ export default function App() {
 
     }, [canvasRef.current, seed, scale, selectedRunWithNum, renderTrigger]);
 
-    return <div css={{
+    return <div css={[{
+        fontFamily: "'Noto Sans Mono', monospace",
+        fontSize: "0.7em",
+        color: "#00ff11",
+
         display: "flex",
         flexDirection: "row",
-    }}>
+    }, /*css*/`
+        & button {
+            padding: 0px;
+            border: none;
+            color: #00ff11;
+            background: #00ff1150;
+            font-family: 'Noto Sans Mono', monospace;
+            font-size: 1em;
+        }
+        & button::before {
+            content: "[\\00a0\\00a0";
+        }
+        & button::after {
+            content: "\\00a0\\00a0]";
+        }
+        & button.short::before {
+            content: "[";
+        }
+        & button.short::after {
+            content: "]";
+        }
+    `]}>
         <canvas
             ref={canvasRef}
             css={{ height: "100%" }}
@@ -160,22 +187,43 @@ export default function App() {
             <button onClick={() => setIsRunning(!isRunning)}>
                 {isRunning ? "pause" : "play"}
             </button>
-            {!isRunning && <button
-                onClick={() => step(1000)}
-            >step</button>}
+            &nbsp;
+            {!isRunning && <>
+                <button
+                    onClick={() => step(1000)}
+                >step</button>
+                &nbsp;
+            </>}
+            <br />
             renderTrigger: {renderTrigger} / tickCount: {runs[0].run.tickCount}
             {soretedRuns.map(({ run, i }) => {
                 return <div
                     key={i}
                     css={[{
-                        background: selectedRunIndex === i ? "#ffffff40" : "transparent",
-                    }, /*css*/` &:hover { background: #ffffff20; }`]}
+                        background: selectedRunIndex === i
+                            ? "#00ff1140"
+                            : "transparent",
+                        cursor: "pointer",
+                    }, /*css*/` &:hover { background: #00ff1160; }`]}
                     onClick={() => setSelectedRunIndex(i)}
                 >
-                    {i} :
-                    maxDepth: {run.maxDepth}
-                    &nbsp;/ depth: {run.depth}
-                    &nbsp;/ speed: {run.speed.toExponential(2)}
+                    {i.toString().padStart(4, ".")}:
+                    &nbsp;
+                    <span css={{ color: "#00ff1190" }}>maxDepth: </span>
+                    <span css={{
+                        background:
+                            run.maxDepth === selectedRunWithNum.run.maxDepth
+                                ? "rgba(47, 255, 0, 0.13)"
+                                : "transparent",
+                    }}>
+                        {run.maxDepth.toString().padStart(4, ".")}
+                    </span>
+                    &nbsp;/&nbsp;
+                    <span css={{ color: "#00ff1190" }}>depth: </span>
+                    {run.depth.toString().padStart(4, ".")}
+                    &nbsp;/&nbsp;
+                    <span css={{ color: "#00ff1190" }}>speed: </span>
+                    {run.speed.toExponential(2)}
                 </div>;
             })}
         </div>

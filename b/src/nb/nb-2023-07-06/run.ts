@@ -129,7 +129,7 @@ export const run = ({
         if (s === 1) { playerEnergy -= 9; }
         evaluateSpacetime(playerPosition[1] + 3) // ensure next slice before altering current
         spacetime[playerPosition[1]][playerPosition[0]] = stateCount;
-        if (playerPosition[1] >= maxDepth) {
+        if (playerPosition[1] > maxDepth) {
             maxDepth = playerPosition[1];
             depth = Math.max(0, maxDepth - depthLeftBehind);
             speed = maxDepth / tickCount;
