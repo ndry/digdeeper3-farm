@@ -18,7 +18,7 @@ export async function trainModel({ runArgs }: {
     }));
     model.add(tf.layers.dense({ units: 175, activation: "relu" }));
     model.add(tf.layers.dense({ units: 150, activation: "relu" }));
-    model.add(tf.layers.dense({ units: 3, activation: "softmax" }));
+    model.add(tf.layers.dense({ units: 4, activation: "softmax" }));
 
     model.compile({
         optimizer: tf.train.adam(),
