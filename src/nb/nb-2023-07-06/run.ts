@@ -164,7 +164,9 @@ export const run = (args: ReadonlyDeep<{
                 .filter(([i]) => possibleDirections.includes(i))
                 .sort((a, b) => b[1] - a[1]);
             for (const [i, v] of sorted) {
-                if (tickRandom.nextFloat() < v) {
+                if (v < 0.5) { break; }
+                const p = 1 - (1 - v) ** 2;
+                if (tickRandom.nextFloat() < p) {
                     direction = i;
                     break;
                 }

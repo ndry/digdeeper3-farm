@@ -7,12 +7,12 @@ import jsonBeautify from "json-beautify";
 import { RunSightView } from "./RunSightView";
 import { trainModel } from "./trainModel";
 import * as tf from "@tensorflow/tfjs";
-import {setWasmPaths} from '@tensorflow/tfjs-backend-wasm';
+import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 // setWasmPaths accepts a `prefixOrFileMap` argument which can be either a
 // string or an object. If passing in a string, this indicates the path to
 // the directory where your WASM binaries are located.
 setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
-
+import "@tensorflow/tfjs-backend-webgpu";
 
 
 // given the run args and tickcount, train a model
@@ -47,7 +47,7 @@ export default function App() {
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
-        runCount: { value: 10, min: 1, max: 2000, step: 1 },
+        runCount: { value: 40, min: 1, max: 2000, step: 1 },
     });
 
     const { runs } = useMemo(() => {
@@ -55,20 +55,20 @@ export default function App() {
             code: {
                 v: caVersion,
                 stateCount: 3,
-                rule: "299338136518556439977845337106716710210",
+                rule: "271461095179572113182746752230348630343",
             },
             depthLeftBehind: 100,
             spaceSize,
             seed,
             startFillState: 0,
-            stateMap: [2, 0, 1],
+            stateMap: [1, 0, 2],
         } as const;
-        const runs = Array.from({ length: runCount }, (_, i) => ({
+        const runs = Array.from({ length: model ? runCount : 500 }, (_, i) => ({
             i,
             run: run({
                 dropzone,
                 tickSeed: seed + i * 10000 + i * 2,
-                copilotModel: model,
+                copilotModel: (i > runCount * 0.75) ? model : undefined,
             }),
         }));
 
@@ -80,7 +80,7 @@ export default function App() {
     useLayoutEffect(() => {
         if (!isRunning) { return; }
         // const targetDt = 100;
-        const targetDt = 1000 / 60;
+        const targetDt = run.length > runCount ? 1000 : (1000 / 60);
         let lastDt = targetDt;
         let lastTicks = 100;
 
@@ -156,7 +156,13 @@ export default function App() {
             display: "flex",
             flexDirection: "row",
         }}>
+            <RunSightView
+                css={{ padding: "1px" }}
+                run1={soretedRuns[0].run}
+                scale={scale}
+            />
             {selectedRunWithNum && <RunSightView
+                css={{ padding: "1px" }}
                 run1={selectedRunWithNum.run}
                 scale={scale}
             />}
@@ -218,7 +224,7 @@ export default function App() {
                                 <td
                                     css={{
                                         background:
-                                            maxDepth === selectedRunWithNum.run.stats.maxDepth
+                                            maxDepth === selectedRunWithNum?.run.stats.maxDepth
                                                 ? "rgba(47, 255, 0, 0.13)"
                                                 : "transparent",
                                     }}
@@ -239,6 +245,7 @@ export default function App() {
         <button
             onClick={async () => {
                 if (!selectedRunWithNum) { return; }
+                // await tf.setBackend("webgpu");
                 await tf.setBackend("wasm");
                 const { args } = selectedRunWithNum.run;
                 setModel(await trainModel({ runArgs: args }));

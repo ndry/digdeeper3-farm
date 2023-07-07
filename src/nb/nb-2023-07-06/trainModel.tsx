@@ -1,3 +1,4 @@
+import { _never } from "../../utils/_never";
 import { run } from "./run";
 import * as tf from "@tensorflow/tfjs";
 
@@ -8,6 +9,8 @@ export async function trainModel({ runArgs }: {
     console.log({ runArgs });
     const theRun = run(runArgs);
 
+    console.log({ "theRun.getState().length": theRun.getState().length });
+    const batchSize = 5000;
     const model = tf.sequential();
     model.add(tf.layers.dense({
         units: 250,
@@ -15,9 +18,13 @@ export async function trainModel({ runArgs }: {
         inputShape: [
             theRun.getState().length,
         ],
+        batchSize,
     }));
     model.add(tf.layers.dense({ units: 175, activation: "relu" }));
-    model.add(tf.layers.dense({ units: 150, activation: "relu" }));
+    model.add(tf.layers.dense({ units: 250, activation: "relu" }));
+    model.add(tf.layers.dense({ units: 250, activation: "relu" }));
+    model.add(tf.layers.dense({ units: 250, activation: "relu" }));
+    model.add(tf.layers.dense({ units: 250, activation: "relu" }));
     model.add(tf.layers.dense({ units: 4, activation: "softmax" }));
 
     model.compile({
@@ -30,22 +37,27 @@ export async function trainModel({ runArgs }: {
         model.setWeights(runArgs.copilotModel.model.getWeights());
     }
 
-
-
     await model.fitDataset(
         tf.data.generator(function* () {
-            while (theRun.tickCount < 2e4) {
-                if (theRun.tickCount % 1e3 === 0) {
-                    console.log({
-                        trainModel: "tickCount",
-                        tickCount: theRun.tickCount,
-                    });
+            for (let i = 0; i < 10; i++) {
+                const perfStart = performance.now();
+                const xs = [];
+                const ys = [];
+                for (let j = 0; j < batchSize; j++) {
+                    const xy = theRun.tick1();
+                    if (!xy) { return; }
+                    xs.push(xy.state);
+                    ys.push(xy.direction);
                 }
-                const xy = theRun.tick1();
-                if (!xy) { break; }
+                const perfEnd = performance.now();
+                console.log({
+                    trainModel: "tickCount",
+                    tickCount: theRun.tickCount,
+                    perf: perfEnd - perfStart,
+                });
                 yield {
-                    xs: tf.tensor([xy.state]),
-                    ys: tf.tensor([xy.direction]),
+                    xs: tf.tensor(xs),
+                    ys: tf.tensor(ys),
                 };
             }
         }),
