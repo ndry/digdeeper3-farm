@@ -5,6 +5,7 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import "@fontsource/noto-sans-mono";
 import jsonBeautify from "json-beautify";
 import { RunSightView } from "./RunSightView";
+import { trainModel } from "./trainModel";
 
 
 
@@ -105,6 +106,7 @@ export default function App() {
             background: #00ff1150;
             font-family: 'Noto Sans Mono', monospace;
             font-size: 1em;
+            width: fit-content;
         }
         & button:hover {
             background: #00ff1160;
@@ -116,14 +118,23 @@ export default function App() {
             content: "[\\00a0\\00a0";
         }
         & button:focus::before {
-            content: "[[\\00a0";
+            content: "[\\00a0-";
         }
         & button::after {
             content: "\\00a0\\00a0]";
         }
         & button:focus::after {
-            content: "\\00a0]]";
+            content: "-\\00a0]";
         }
+
+        & button:disabled {
+            color: #00980a;
+            background: #00ff1120;
+        }
+        & button:disabled:hover {
+            background: #00ff1120;
+        }
+
         & button.short::before {
             content: "[";
         }
@@ -208,8 +219,16 @@ export default function App() {
                 </table>
             </div>
         </div>
-        <button >
+        <button
+            onClick={() => {
+                if (!selectedRunWithNum) { return; }
+                const { args } = selectedRunWithNum.run;
+                trainModel({ runArgs: args });
+            }}
+            disabled={!selectedRunWithNum}
+        >
             train on selected run
+            {selectedRunWithNum && ` (${selectedRunWithNum.i}/ts-${selectedRunWithNum.run.args.tickSeed})`}
         </button>
     </div>;
 }
