@@ -31,20 +31,21 @@ export type Dropzone = {
 /**
  * A single run of a single agent in a single zone
  */
-export const run = ({
-    dropzone: {
-        code,
-        stateMap,
-        spaceSize,
-        depthLeftBehind,
-        seed: spacetimeSeed,
-        startFillState,
-    },
-    tickSeed,
-}: ReadonlyDeep<{
+export const run = (args: ReadonlyDeep<{
     dropzone: Dropzone,
     tickSeed: number,
 }>) => {
+    const {
+        dropzone: {
+            code,
+            stateMap,
+            spaceSize,
+            depthLeftBehind,
+            seed: spacetimeSeed,
+            startFillState,
+        },
+        tickSeed,
+    } = args;
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
     const spacetimeRandom32 = createLehmer32(spacetimeSeed);
@@ -100,7 +101,9 @@ export const run = ({
     let speed = 0;
     const tickRandom = new LehmerPrng(tickSeed);
 
+    let stats: ReturnType<typeof createStats> | undefined = undefined;
     const tick = () => {
+        stats = undefined;
         tickCount++;
         const possibleDirections = ([forward, left, right, backward] as const)
             .filter(d => {
@@ -142,15 +145,20 @@ export const run = ({
 
         return true;
     };
+    const createStats = () => ({
+        playerEnergy,
+        depth,
+        maxDepth,
+        playerPositionX: playerPosition[0],
+        playerPositionT: playerPosition[1],
+        tickCount,
+        speed,
+    } as const);
+
 
     return {
-        get playerEnergy() { return playerEnergy; },
-        get depth() { return depth; },
-        get maxDepth() { return maxDepth; },
-        get playerPositionX() { return playerPosition[0]; },
-        get playerPositionT() { return playerPosition[1]; },
-        get tickCount() { return tickCount; },
-        get speed() { return speed; },
+        get stats() { return stats ??= createStats(); },
+        get args() { return args; },
         tick,
         at,
     };

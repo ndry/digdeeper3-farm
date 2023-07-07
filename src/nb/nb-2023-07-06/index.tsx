@@ -4,6 +4,7 @@ import { version as caVersion } from "../../ca/version";
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
 import "@fontsource/noto-sans-mono";
+import jsonBeautify from "json-beautify";
 
 
 export const colorMap = [
@@ -88,8 +89,8 @@ export default function App() {
 
     const soretedRuns = [...runs]
         .sort((a, b) =>
-            (b.run.maxDepth - a.run.maxDepth)
-            || (b.run.speed - a.run.speed));
+            (b.run.stats.maxDepth - a.run.stats.maxDepth)
+            || (b.run.stats.speed - a.run.stats.speed));
 
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,19 +113,22 @@ export default function App() {
         } = createFullCanvasImageData32(canvas);
 
 
-        let handle: number;
+        // let handle: number;
         const render = () => {
             canvas.width = w;
             canvas.height = h;
-            const d = selectedRun.depth;
+            const stats = selectedRun.stats;
+            const {
+                depth: d,
+                playerPositionX: px,
+                playerPositionT: pt,
+            } = stats;
             for (let y = 0; y < h; y++) {
                 for (let x = 0; x < w; x++) {
                     setPixel(x, y, colorMap[selectedRun.at(y + d, x)]);
                 }
             }
 
-            const px = selectedRun.playerPositionX;
-            const pt = selectedRun.playerPositionT;
             for (let dx = -2; dx <= 2; dx++) {
                 for (let dy = -2; dy <= 2; dy++) {
                     const x = px + dx;
@@ -198,37 +202,63 @@ export default function App() {
                 &nbsp;
             </>}
             <br />
-            renderTrigger: {renderTrigger} / tickCount: {runs[0].run.tickCount}
-            {soretedRuns.map(({ run, i }) => {
-                return <div
-                    key={i}
-                    css={[{
-                        background: selectedRunIndex === i
-                            ? "#00ff1140"
-                            : "transparent",
-                        cursor: "pointer",
-                    }, /*css*/` &:hover { background: #00ff1160; }`]}
-                    onClick={() => setSelectedRunIndex(i)}
-                >
-                    {i.toString().padStart(4, ".")}:
-                    &nbsp;
-                    <span css={{ color: "#00ff1190" }}>maxDepth: </span>
-                    <span css={{
-                        background:
-                            run.maxDepth === selectedRunWithNum.run.maxDepth
-                                ? "rgba(47, 255, 0, 0.13)"
-                                : "transparent",
-                    }}>
-                        {run.maxDepth.toString().padStart(4, ".")}
-                    </span>
-                    &nbsp;/&nbsp;
-                    <span css={{ color: "#00ff1190" }}>depth: </span>
-                    {run.depth.toString().padStart(4, ".")}
-                    &nbsp;/&nbsp;
-                    <span css={{ color: "#00ff1190" }}>speed: </span>
-                    {run.speed.toExponential(2)}
-                </div>;
-            })}
+            renderTrigger: {renderTrigger} / tickCount: {runs[0].run.stats.tickCount}
+            <table css={[{
+                textAlign: "right",
+                borderSpacing: "0px",
+            }, /*css*/`
+            & tr:nth-child(2n) {
+                background: rgba(0, 255, 17, 0.07);
+            }
+        `]}>
+                <thead>
+                    <tr>
+                        <th>..run</th>
+                        <th>.maxDepth</th>
+                        <th>...speed</th>
+                        <th>.tickSeed</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {soretedRuns.map(({ run, i }) => {
+                        const { args, stats } = run;
+                        const {
+                            tickSeed,
+                        } = run.args;
+                        const {
+                            maxDepth,
+                            speed,
+                        } = stats;
+                        return <tr
+                            key={i}
+                            css={[{
+                                background: selectedRunIndex === i
+                                    ? "#00ff1140"
+                                    : "transparent",
+                                cursor: "pointer",
+                            }, /*css*/` &:hover { background: #00ff1160; }`]}
+
+                            onClick={() => {
+                                setSelectedRunIndex(i);
+                                console.log({ i, run, args, stats });
+                            }}
+                            title={jsonBeautify({ args, stats }, null as any, 2, 80)}
+                        >
+                            <td>{i}</td>
+                            <td
+                                css={{
+                                    background:
+                                        maxDepth === selectedRunWithNum.run.stats.maxDepth
+                                            ? "rgba(47, 255, 0, 0.13)"
+                                            : "transparent",
+                                }}
+                            >{maxDepth}</td>
+                            <td>{speed.toExponential(2)}</td>
+                            <td>{tickSeed}</td>
+                        </tr>;
+                    })}
+                </tbody>
+            </table>
         </div>
     </div >;
 }
