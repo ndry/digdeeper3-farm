@@ -1,19 +1,17 @@
 import { useControls } from "leva";
 import { run } from "./run";
 import { version as caVersion } from "../../ca/version";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
+import { useLayoutEffect, useMemo, useState } from "react";
 import "@fontsource/noto-sans-mono";
 import jsonBeautify from "json-beautify";
+import { RunSightView } from "./RunSightView";
 
 
-export const colorMap = [
-    "#8000ff", // empty
-    "#000000", // wall
-    "#80ff00", // energy
-    "#a00000", // visited
-] as const;
-export const playerColor = "#ff0000ff";
+
+// given the run args and tickcount, train a model
+// display the trained model playing the game
+//   - esp compared to the original run and some other runs
+
 
 
 export default function App() {
@@ -92,78 +90,13 @@ export default function App() {
             (b.run.stats.maxDepth - a.run.stats.maxDepth)
             || (b.run.stats.speed - a.run.stats.speed));
 
-
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    useLayoutEffect(() => {
-        if (!selectedRunWithNum) { return; }
-        const canvas = canvasRef.current;
-        if (!canvas) { return; }
-
-
-        const selectedRun = selectedRunWithNum.run;
-
-        const w = spaceSize;
-        const h = 300;
-        canvas.width = w;
-        canvas.height = h;
-        const {
-            ctx,
-            put,
-            setPixel,
-        } = createFullCanvasImageData32(canvas);
-
-
-        // let handle: number;
-        const render = () => {
-            canvas.width = w;
-            canvas.height = h;
-            const stats = selectedRun.stats;
-            const {
-                depth: d,
-                playerPositionX: px,
-                playerPositionT: pt,
-            } = stats;
-            for (let y = 0; y < h; y++) {
-                for (let x = 0; x < w; x++) {
-                    setPixel(x, y, colorMap[selectedRun.at(y + d, x)]);
-                }
-            }
-
-            for (let dx = -2; dx <= 2; dx++) {
-                for (let dy = -2; dy <= 2; dy++) {
-                    const x = px + dx;
-                    const y = pt - d + dy;
-                    if (x < 0 || x >= w || y < 0 || y >= h) { continue; }
-
-                    setPixel(x, y, playerColor);
-                }
-            }
-
-            canvas.width *= scale;
-            canvas.height *= scale;
-
-            put();
-            ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(
-                canvas,
-                0, 0, canvas.width / scale, canvas.height / scale,
-                0, 0, canvas.width, canvas.height);
-
-
-            // handle = requestAnimationFrame(render);
-        };
-        render();
-        // return () => cancelAnimationFrame(handle);
-
-    }, [canvasRef.current, seed, scale, selectedRunWithNum, renderTrigger]);
-
     return <div css={[{
         fontFamily: "'Noto Sans Mono', monospace",
         fontSize: "0.7em",
         color: "#00ff11",
 
         display: "flex",
-        flexDirection: "row",
+        flexDirection: "column",
     }, /*css*/`
         & button {
             padding: 0px;
@@ -173,11 +106,23 @@ export default function App() {
             font-family: 'Noto Sans Mono', monospace;
             font-size: 1em;
         }
+        & button:hover {
+            background: #00ff1160;
+        }
+        & button:active {
+            background: #00ff1170;
+        }
         & button::before {
             content: "[\\00a0\\00a0";
         }
+        & button:focus::before {
+            content: "[[\\00a0";
+        }
         & button::after {
             content: "\\00a0\\00a0]";
+        }
+        & button:focus::after {
+            content: "\\00a0]]";
         }
         & button.short::before {
             content: "[";
@@ -186,79 +131,85 @@ export default function App() {
             content: "]";
         }
     `]}>
-        <canvas
-            ref={canvasRef}
-            css={{ height: "100%" }}
-        />
-        <div>
-            <button onClick={() => setIsRunning(!isRunning)}>
-                {isRunning ? "pause" : "play"}
-            </button>
-            &nbsp;
-            {!isRunning && <>
-                <button
-                    onClick={() => step(1000)}
-                >step</button>
+        <div css={{
+            display: "flex",
+            flexDirection: "row",
+        }}>
+            {selectedRunWithNum && <RunSightView
+                run1={selectedRunWithNum.run}
+                scale={scale}
+            />}
+            <div>
+                <button onClick={() => setIsRunning(!isRunning)}>
+                    {isRunning ? "pause" : "play"}
+                </button>
                 &nbsp;
-            </>}
-            <br />
-            renderTrigger: {renderTrigger} / tickCount: {runs[0].run.stats.tickCount}
-            <table css={[{
-                textAlign: "right",
-                borderSpacing: "0px",
-            }, /*css*/`
-            & tr:nth-child(2n) {
-                background: rgba(0, 255, 17, 0.07);
-            }
-        `]}>
-                <thead>
-                    <tr>
-                        <th>..run</th>
-                        <th>.maxDepth</th>
-                        <th>...speed</th>
-                        <th>.tickSeed</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {soretedRuns.map(({ run, i }) => {
-                        const { args, stats } = run;
-                        const {
-                            tickSeed,
-                        } = run.args;
-                        const {
-                            maxDepth,
-                            speed,
-                        } = stats;
-                        return <tr
-                            key={i}
-                            css={[{
-                                background: selectedRunIndex === i
-                                    ? "#00ff1140"
-                                    : "transparent",
-                                cursor: "pointer",
-                            }, /*css*/` &:hover { background: #00ff1160; }`]}
+                {!isRunning && <>
+                    <button
+                        onClick={() => step(1000)}
+                    >step</button>
+                    &nbsp;
+                </>}
+                <br />
+                renderTrigger: {renderTrigger} / tickCount: {runs[0].run.stats.tickCount}
+                <table css={[{
+                    textAlign: "right",
+                    borderSpacing: "0px",
+                },
+                /*css*/`& tr:nth-child(2n) { background: rgba(0, 255, 17, 0.07);}`,
+                ]}>
+                    <thead>
+                        <tr>
+                            <th>..run</th>
+                            <th>.maxDepth</th>
+                            <th>...speed</th>
+                            <th>.tickSeed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {soretedRuns.map(({ run, i }) => {
+                            const { args, stats } = run;
+                            const {
+                                tickSeed,
+                            } = run.args;
+                            const {
+                                maxDepth,
+                                speed,
+                            } = stats;
+                            return <tr
+                                key={i}
+                                css={[{
+                                    background: selectedRunIndex === i
+                                        ? "#00ff1140"
+                                        : "transparent",
+                                    cursor: "pointer",
+                                }, /*css*/` &:hover { background: #00ff1160; }`]}
 
-                            onClick={() => {
-                                setSelectedRunIndex(i);
-                                console.log({ i, run, args, stats });
-                            }}
-                            title={jsonBeautify({ args, stats }, null as any, 2, 80)}
-                        >
-                            <td>{i}</td>
-                            <td
-                                css={{
-                                    background:
-                                        maxDepth === selectedRunWithNum.run.stats.maxDepth
-                                            ? "rgba(47, 255, 0, 0.13)"
-                                            : "transparent",
+                                onClick={() => {
+                                    setSelectedRunIndex(i);
+                                    console.log({ i, run, args, stats });
                                 }}
-                            >{maxDepth}</td>
-                            <td>{speed.toExponential(2)}</td>
-                            <td>{tickSeed}</td>
-                        </tr>;
-                    })}
-                </tbody>
-            </table>
+                                title={jsonBeautify({ args, stats }, null as any, 2, 80)}
+                            >
+                                <td>{i}</td>
+                                <td
+                                    css={{
+                                        background:
+                                            maxDepth === selectedRunWithNum.run.stats.maxDepth
+                                                ? "rgba(47, 255, 0, 0.13)"
+                                                : "transparent",
+                                    }}
+                                >{maxDepth}</td>
+                                <td>{speed.toExponential(2)}</td>
+                                <td>{tickSeed}</td>
+                            </tr>;
+                        })}
+                    </tbody>
+                </table>
+            </div>
         </div>
-    </div >;
+        <button >
+            train on selected run
+        </button>
+    </div>;
 }
