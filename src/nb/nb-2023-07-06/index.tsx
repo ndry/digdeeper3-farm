@@ -42,21 +42,23 @@ export default function App() {
     });
 
     const { runs } = useMemo(() => {
+        const dropzone = {
+            code: {
+                v: caVersion,
+                stateCount: 3,
+                rule: "299338136518556439977845337106716710210",
+            },
+            depthLeftBehind: 100,
+            spaceSize,
+            seed,
+            startFillState: 0,
+            stateMap: [2, 0, 1],
+        } as const;
         const runs = Array.from({ length: runCount }, (_, i) => ({
             i,
             run: run({
-                code: {
-                    v: caVersion,
-                    stateCount: 3,
-                    rule: "299338136518556439977845337106716710210",
-                },
-                depthLeftBehind: 100,
-                seed: seed + i * 10000,
-                spaceSize,
-                spacetimeSeed: seed,
-                startFillState: 0,
+                dropzone,
                 tickSeed: seed + i * 10000 + i * 2,
-                stateMap: [2, 0, 1],
             }),
         }));
 

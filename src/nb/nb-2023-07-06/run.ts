@@ -3,6 +3,7 @@ import { Code } from "../../ca/code";
 import { fillSpace } from "../../ca/fill-space";
 import { _never } from "../../utils/_never";
 import { LehmerPrng, createLehmer32 } from "../../utils/lehmer-prng";
+import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { tuple } from "../../utils/tuple";
 
 export const forward = 0;
@@ -17,29 +18,33 @@ export const directionVec = {
     [backward]: [0, -1],
 };
 
+export type Dropzone = {
+    code: Code, // world
+    stateMap: [number, number, number], // world
+    startFillState: number, // world or zone?
+    spaceSize: number,
+    seed: number,
+    depthLeftBehind: number,// zone or drop?
+};
+
 
 /**
  * A single run of a single agent in a single zone
  */
 export const run = ({
-    seed,
-    spacetimeSeed,
+    dropzone: {
+        code,
+        stateMap,
+        spaceSize,
+        depthLeftBehind,
+        seed: spacetimeSeed,
+        startFillState,
+    },
     tickSeed,
-    spaceSize,
-    code,
-    startFillState,
-    depthLeftBehind,
-    stateMap,
-}: {
-    seed: number,
-    spacetimeSeed: number,
+}: ReadonlyDeep<{
+    dropzone: Dropzone,
     tickSeed: number,
-    spaceSize: number,
-    code: Code,
-    startFillState: number,
-    depthLeftBehind: number,
-    stateMap: [number, number, number],
-}) => {
+}>) => {
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
     const spacetimeRandom32 = createLehmer32(spacetimeSeed);
