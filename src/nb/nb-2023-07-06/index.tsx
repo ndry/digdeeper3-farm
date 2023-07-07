@@ -6,6 +6,12 @@ import "@fontsource/noto-sans-mono";
 import jsonBeautify from "json-beautify";
 import { RunSightView } from "./RunSightView";
 import { trainModel } from "./trainModel";
+import * as tf from "@tensorflow/tfjs";
+import {setWasmPaths} from '@tensorflow/tfjs-backend-wasm';
+// setWasmPaths accepts a `prefixOrFileMap` argument which can be either a
+// string or an object. If passing in a string, this indicates the path to
+// the directory where your WASM binaries are located.
+setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
 
 
 
@@ -14,11 +20,14 @@ import { trainModel } from "./trainModel";
 //   - esp compared to the original run and some other runs
 
 
-
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const [selectedRunIndex, setSelectedRunIndex] = useState(0);
+    const [model, setModel] = useState<{
+        model: tf.Sequential,
+        id: string,
+    } | undefined>(undefined);
 
     function step(ticks: number) {
         for (const run of runs) {
@@ -38,7 +47,7 @@ export default function App() {
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
-        runCount: { value: 40, min: 1, max: 2000, step: 1 },
+        runCount: { value: 10, min: 1, max: 2000, step: 1 },
     });
 
     const { runs } = useMemo(() => {
@@ -59,13 +68,14 @@ export default function App() {
             run: run({
                 dropzone,
                 tickSeed: seed + i * 10000 + i * 2,
+                copilotModel: model,
             }),
         }));
 
         return {
             runs,
         };
-    }, [seed, spaceSize, runCount]);
+    }, [seed, spaceSize, runCount, model]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
@@ -167,7 +177,7 @@ export default function App() {
                     textAlign: "right",
                     borderSpacing: "0px",
                 },
-                /*css*/`& tr:nth-child(2n) { background: rgba(0, 255, 17, 0.07);}`,
+                /*css*/`& tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.07);}`,
                 ]}>
                     <thead>
                         <tr>
@@ -175,6 +185,7 @@ export default function App() {
                             <th>.maxDepth</th>
                             <th>...speed</th>
                             <th>.tickSeed</th>
+                            <th>.......model</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -182,6 +193,7 @@ export default function App() {
                             const { args, stats } = run;
                             const {
                                 tickSeed,
+                                copilotModel
                             } = run.args;
                             const {
                                 maxDepth,
@@ -213,6 +225,11 @@ export default function App() {
                                 >{maxDepth}</td>
                                 <td>{speed.toExponential(2)}</td>
                                 <td>{tickSeed}</td>
+                                <td>
+                                    {copilotModel
+                                        ? copilotModel.id
+                                        : "-"}
+                                </td>
                             </tr>;
                         })}
                     </tbody>
@@ -220,10 +237,11 @@ export default function App() {
             </div>
         </div>
         <button
-            onClick={() => {
+            onClick={async () => {
                 if (!selectedRunWithNum) { return; }
+                await tf.setBackend("wasm");
                 const { args } = selectedRunWithNum.run;
-                trainModel({ runArgs: args });
+                setModel(await trainModel({ runArgs: args }));
             }}
             disabled={!selectedRunWithNum}
         >

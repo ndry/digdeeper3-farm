@@ -11,7 +11,7 @@ import * as tf from "@tensorflow/tfjs-node";
         [[0, 0, 1], 1],
         [[0, 1, 1], 2],
         [[1, 0, 0], 0],
-         
+
     ] as [number[], number][];
 
     const model = tf.sequential();
@@ -45,10 +45,18 @@ import * as tf from "@tensorflow/tfjs-node";
         )
     }
 
-    const p = (model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
-        .dataSync();
 
-
-    console.log(p);
+    console.log((
+        model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
+        .dataSync());
+    console.log((
+        model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
+        .dataSync());
+    console.log((
+        model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
+        .dataSync());
+    console.log((
+        model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
+        .dataSync());
 
 })();

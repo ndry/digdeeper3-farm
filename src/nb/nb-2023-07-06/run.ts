@@ -5,6 +5,8 @@ import { _never } from "../../utils/_never";
 import { LehmerPrng, createLehmer32 } from "../../utils/lehmer-prng";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { tuple } from "../../utils/tuple";
+import { v2 } from "../../utils/v";
+import * as tf from "@tensorflow/tfjs";
 
 export const forward = 0;
 export const left = 1;
@@ -27,6 +29,17 @@ export type Dropzone = {
     depthLeftBehind: number,// zone or drop?
 };
 
+export const neighborhood = [...(function* () {
+    const r = 8;
+    for (let dt = -2; dt <= 2; dt++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            if (Math.abs(dt) + Math.abs(dx) <= r) {
+                yield [dt, dx] as v2;
+            }
+        }
+    }
+})()];
+export const windowLength = 1;
 
 /**
  * A single run of a single agent in a single zone
@@ -34,6 +47,10 @@ export type Dropzone = {
 export const run = (args: ReadonlyDeep<{
     dropzone: Dropzone,
     tickSeed: number,
+    copilotModel: {
+        id: string,
+        model: tf.Sequential,
+    } | undefined,
 }>) => {
     const {
         dropzone: {
@@ -45,6 +62,7 @@ export const run = (args: ReadonlyDeep<{
             startFillState,
         },
         tickSeed,
+        copilotModel,
     } = args;
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
@@ -90,6 +108,12 @@ export const run = (args: ReadonlyDeep<{
         return stateMap[spacetime[t][x]];
     };
 
+    const atWithBounds = (t: number, x: number) => {
+        if (t < 0) { return stateCount + 1; }
+        if (x < 0 || x >= spaceSize) { return stateCount + 1; }
+        return at(t, x);
+    };
+
     const playerPosition: [number, number] = [
         Math.floor(spaceSize / 2),
         0,
@@ -127,8 +151,30 @@ export const run = (args: ReadonlyDeep<{
 
 
         let direction: 0 | 1 | 2 | 3 | undefined = undefined;
-        direction = possibleDirections[tickRandom.next() % possibleDirections.length];
 
+        if (copilotModel) {
+            const t = copilotModel.model.predict([
+                tf.tensor([getState()]),
+            ]) as tf.Tensor;
+            const theOffer = [...t.dataSync()];
+            // console.log({ theOffer });
+
+            const sorted = theOffer
+                .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
+                .filter(([i]) => possibleDirections.includes(i))
+                .sort((a, b) => b[1] - a[1]);
+            for (const [i, v] of sorted) {
+                if (tickRandom.nextFloat() < v) {
+                    direction = i;
+                    break;
+                }
+            }
+            if (direction === undefined) {
+                direction = possibleDirections[tickRandom.next() % possibleDirections.length];
+            }
+        } else {
+            direction = possibleDirections[tickRandom.next() % possibleDirections.length];
+        }
 
         playerPosition[0] += directionVec[direction][0];
         playerPosition[1] += directionVec[direction][1];
@@ -143,7 +189,21 @@ export const run = (args: ReadonlyDeep<{
             speed = maxDepth / tickCount;
         }
 
-        return true;
+        return direction;
+    };
+    const getState = () => [
+        ...neighborhood
+            .map(([dx, dt]) => {
+                const st = atWithBounds(playerPosition[1] + dt, playerPosition[0] + dx);
+                return ((st === 0) || (st === 2)) ? 0 : 1;
+            }),
+        // playerEnergy,
+    ];
+    const tick1 = () => {
+        const state = getState();
+        const direction = tick();
+        if (direction === false) { return; }
+        return { state, direction };
     };
     const createStats = () => ({
         playerEnergy,
@@ -160,6 +220,9 @@ export const run = (args: ReadonlyDeep<{
         get stats() { return stats ??= createStats(); },
         get args() { return args; },
         tick,
+        tick1,
+        getState,
+        get tickCount() { return tickCount; },
         at,
     };
 };
