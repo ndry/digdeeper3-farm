@@ -40,7 +40,7 @@ import * as tf from "@tensorflow/tfjs-node";
             tf.tensor(data.map(([x, y]) => x)),
             tf.tensor(data.map(([x, y]) => y)),
             {
-                epochs: 1000,
+                epochs: 100,
             }
         )
     }
