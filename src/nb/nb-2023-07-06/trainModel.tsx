@@ -3,14 +3,21 @@ import { run } from "./run";
 import * as tf from "@tensorflow/tfjs";
 
 
-export async function trainModel({ runArgs }: {
-    runArgs: Parameters<typeof run>[0];
+export async function trainModel({
+    runArgs,
+    batchSize = 5000,
+    batchCount = 10,
+    log = console.log.bind(console),
+}: {
+    runArgs: Parameters<typeof run>[0],
+    batchSize?: number,
+    batchCount?: number,
+    log?: (msg: any) => void,
 }) {
     console.log({ runArgs });
     const theRun = run(runArgs);
 
     console.log({ "theRun.getState().length": theRun.getState().length });
-    const batchSize = 5000;
     const model = tf.sequential();
     model.add(tf.layers.dense({
         units: 250,
@@ -39,7 +46,7 @@ export async function trainModel({ runArgs }: {
 
     await model.fitDataset(
         tf.data.generator(function* () {
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < batchCount; i++) {
                 const perfStart = performance.now();
                 const xs = [];
                 const ys = [];
@@ -50,7 +57,7 @@ export async function trainModel({ runArgs }: {
                     ys.push(xy.direction);
                 }
                 const perfEnd = performance.now();
-                console.log({
+                log({
                     trainModel: "tickCount",
                     tickCount: theRun.tickCount,
                     perf: perfEnd - perfStart,
@@ -65,7 +72,7 @@ export async function trainModel({ runArgs }: {
             epochs: 1,
             callbacks: {
                 onEpochEnd: (epoch, logs) => {
-                    console.log({ trainModel: "onEpochEnd", epoch, logs });
+                    log({ trainModel: "onEpochEnd", epoch, logs });
                 },
             },
         },
