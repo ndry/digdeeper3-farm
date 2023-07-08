@@ -29,10 +29,11 @@ export type Dropzone = {
     depthLeftBehind: number,// zone or drop?
 };
 
+export const neighborhoodRadius = 8;
 export const neighborhood = [...(function* () {
-    const r = 8;
-    for (let dt = -2; dt <= 2; dt++) {
-        for (let dx = -2; dx <= 2; dx++) {
+    const r = neighborhoodRadius;
+    for (let dt = -r; dt <= r; dt++) {
+        for (let dx = -r; dx <= r; dx++) {
             if (Math.abs(dt) + Math.abs(dx) <= r) {
                 yield [dt, dx] as v2;
             }
@@ -164,8 +165,9 @@ export const run = (args: ReadonlyDeep<{
                 .filter(([i]) => possibleDirections.includes(i))
                 .sort((a, b) => b[1] - a[1]);
             for (const [i, v] of sorted) {
-                if (v < 0.5) { break; }
-                const p = 1 - (1 - v) ** 2;
+                // if (v < 0.5) { break; }
+                // const p = 1 - (1 - v) ** 2;
+                const p = v;
                 if (tickRandom.nextFloat() < p) {
                     direction = i;
                     break;

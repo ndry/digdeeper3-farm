@@ -1,4 +1,4 @@
-import { run } from "./run";
+import { neighborhood, neighborhoodRadius, run } from "./run";
 import { useLayoutEffect, useRef } from "react";
 import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
 import { jsx } from "@emotion/react";
@@ -46,14 +46,16 @@ export function RunSightView({
                 }
             }
 
-            for (let dx = -2; dx <= 2; dx++) {
-                for (let dy = -2; dy <= 2; dy++) {
-                    const x = px + dx;
-                    const y = pt - d + dy;
-                    if (x < 0 || x >= w || y < 0 || y >= h) { continue; }
+            for (const [dx, dy] of neighborhood) {
+                if (
+                    (Math.abs(dx) + Math.abs(dy) !== neighborhoodRadius)
+                    && (Math.abs(dx) + Math.abs(dy) > 1)
+                ) { continue; }
+                const x = px + dx;
+                const y = pt - d + dy;
+                if (x < 0 || x >= w || y < 0 || y >= h) { continue; }
 
-                    setPixel(x, y, playerColor);
-                }
+                setPixel(x, y, playerColor);
             }
 
             canvas.width *= scale;

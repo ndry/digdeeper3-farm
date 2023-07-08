@@ -12,6 +12,7 @@ import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 // the directory where your WASM binaries are located.
 setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
 import "@tensorflow/tfjs-backend-webgpu";
+import "@tensorflow/tfjs-backend-webgl";
 import { retroThemeCss } from "./retro-theme-css";
 
 
@@ -134,76 +135,88 @@ export default function App() {
                 </>}
                 <br />
                 renderTrigger: {renderTrigger} / tickCount: {runs[0].run.stats.tickCount}
-                <table css={[{
-                    textAlign: "right",
-                    borderSpacing: "0px",
-                },
+                <div css={{
+                    overflow: "auto",
+                    height: "500px",
+                }}>
+                    <table css={[{
+                        textAlign: "right",
+                        borderSpacing: "0px",
+                    },
                 /*css*/`& tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.07);}`,
-                ]}>
-                    <thead>
-                        <tr>
-                            <th>..run</th>
-                            <th>.maxDepth</th>
-                            <th>...speed</th>
-                            <th>.tickSeed</th>
-                            <th>.......model</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {soretedRuns.map(({ run, i }) => {
-                            const { args, stats } = run;
-                            const {
-                                tickSeed,
-                                copilotModel
-                            } = run.args;
-                            const {
-                                maxDepth,
-                                speed,
-                            } = stats;
-                            return <tr
-                                key={i}
-                                css={[{
-                                    background: selectedRunIndex === i
-                                        ? "#00ff1140"
-                                        : "transparent",
-                                    cursor: "pointer",
-                                }, /*css*/` &:hover { background: #00ff1160; }`]}
-
-                                onClick={() => {
-                                    setSelectedRunIndex(i);
-                                    console.log({ i, run, args, stats });
-                                }}
-                                title={jsonBeautify({ args, stats }, null as any, 2, 80)}
-                            >
-                                <td>{i}</td>
-                                <td
-                                    css={{
-                                        background:
-                                            maxDepth === selectedRunWithNum?.run.stats.maxDepth
-                                                ? "rgba(47, 255, 0, 0.13)"
+                    ]}>
+                        <thead>
+                            <tr>
+                                <th>..run</th>
+                                <th>.maxDepth</th>
+                                <th>...speed</th>
+                                <th>.tickSeed</th>
+                                <th>.......model</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {soretedRuns
+                                .slice(0, 10)
+                                .map(({ run, i }) => {
+                                    const { args, stats } = run;
+                                    const {
+                                        tickSeed,
+                                        copilotModel
+                                    } = run.args;
+                                    const {
+                                        maxDepth,
+                                        speed,
+                                    } = stats;
+                                    return <tr
+                                        key={i}
+                                        css={[{
+                                            background: selectedRunIndex === i
+                                                ? "#00ff1140"
                                                 : "transparent",
-                                    }}
-                                >{maxDepth}</td>
-                                <td>{speed.toExponential(2)}</td>
-                                <td>{tickSeed}</td>
-                                <td>
-                                    {copilotModel
-                                        ? copilotModel.id
-                                        : "-"}
-                                </td>
-                            </tr>;
-                        })}
-                    </tbody>
-                </table>
+                                            cursor: "pointer",
+                                        }, /*css*/` &:hover { background: #00ff1160; }`]}
+
+                                        onClick={() => {
+                                            setSelectedRunIndex(i);
+                                            console.log({ i, run, args, stats });
+                                        }}
+                                        title={jsonBeautify({ args, stats }, null as any, 2, 80)}
+                                    >
+                                        <td>{i}</td>
+                                        <td
+                                            css={{
+                                                background:
+                                                    maxDepth === selectedRunWithNum?.run.stats.maxDepth
+                                                        ? "rgba(47, 255, 0, 0.13)"
+                                                        : "transparent",
+                                            }}
+                                        >{maxDepth}</td>
+                                        <td>{speed.toExponential(2)}</td>
+                                        <td>{tickSeed}</td>
+                                        <td>
+                                            {copilotModel
+                                                ? copilotModel.id
+                                                : "-"}
+                                        </td>
+                                    </tr>;
+                                })}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         <button
             onClick={async () => {
                 if (!selectedRunWithNum) { return; }
                 // await tf.setBackend("webgpu");
-                await tf.setBackend("wasm");
+                await tf.setBackend("webgl");
+                // await tf.setBackend("wasm");
                 const { args } = selectedRunWithNum.run;
-                setModel(await trainModel({ runArgs: args }));
+                setModel(await trainModel({
+                    runArgs: args,
+                    batchSize: 5000,
+                    batchCount: 100,
+                }));
             }}
             disabled={!selectedRunWithNum}
         >
