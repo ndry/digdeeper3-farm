@@ -8,6 +8,7 @@ import { Twemoji } from "react-emoji-render";
 import { RulePreview } from "./rule-preview";
 import { generateRandomRule } from "../ca/generate-random-rule";
 import * as tf from "@tensorflow/tfjs";
+import * as pages from "./pages";
 
 
 const eqStringify = <T,>(p: T, n: T) =>
@@ -17,62 +18,6 @@ const eqStringify = <T,>(p: T, n: T) =>
 export function App() {
     const focusRootRef = useRef<HTMLDivElement>(null);
     useGrabFocusFromBody(focusRootRef);
-
-    // const x = useMemo(() => {
-    //     (async () => {
-
-    //         const data = [
-    //             [[1, 1, 0], 0],
-    //             [[1, 0, 1], 1],
-    //             [[0, 1, 1], 2],
-    //             [[0, 0, 0], 0],
-    //             [[0, 1, 0], 0],
-    //             [[0, 0, 1], 1],
-    //             [[0, 1, 1], 2],
-    //             [[1, 0, 0], 0],
-
-    //         ] as [number[], number][];
-
-    //         const model = tf.sequential();
-    //         model.add(tf.layers.dense({
-    //             units: 250,
-    //             activation: "relu",
-    //             inputShape: [
-    //                 data[0][0].length,
-    //             ]
-    //         }));
-    //         model.add(tf.layers.dense({ units: 175, activation: "relu" }));
-    //         model.add(tf.layers.dense({ units: 150, activation: "relu" }));
-    //         model.add(tf.layers.dense({ units: 3, activation: "softmax" }));
-
-    //         model.compile({
-    //             optimizer: tf.train.adam(),
-    //             loss: "sparseCategoricalCrossentropy",
-    //             metrics: ["accuracy"]
-    //         });
-
-
-    //         const numTrainingIterations = 10;
-    //         for (let i = 0; i < numTrainingIterations; i++) {
-    //             console.log(`Training iteration : ${i + 1} / ${numTrainingIterations}`);
-    //             await model.fit(
-    //                 tf.tensor(data.map(([x]) => x)),
-    //                 tf.tensor(data.map(([, y]) => y)),
-    //                 {
-    //                     epochs: 1,
-    //                 },
-    //             )
-    //         }
-
-    //         const p = (model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
-    //             .dataSync();
-
-
-    //         console.log(p);
-
-    //     })();
-
-    // }, []);
 
     const [isDisclaimerShown, setIsDisclaimerShown] = useState(false);
 
@@ -107,8 +52,7 @@ export function App() {
                 pointerEvents: "all",
             }}>
                 {[
-                    "./nb/nb-2023-07-06/",
-                    "?nb_nb_2023_07_06",
+                    ...Object.keys(pages).map(k => `./?${k}`),
                 ].map((path, i) => <a
                     css={{ display: "block" }}
                     key={i}

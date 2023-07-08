@@ -2,7 +2,6 @@ import { useControls } from "leva";
 import { run } from "./run";
 import { version as caVersion } from "../../ca/version";
 import { useLayoutEffect, useMemo, useState } from "react";
-import "@fontsource/noto-sans-mono";
 import jsonBeautify from "json-beautify";
 import { RunSightView } from "./RunSightView";
 import { trainModel } from "./trainModel";
@@ -13,6 +12,7 @@ import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
 // the directory where your WASM binaries are located.
 setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
 import "@tensorflow/tfjs-backend-webgpu";
+import { retroThemeCss } from "./retro-theme-css";
 
 
 // given the run args and tickcount, train a model
@@ -102,56 +102,11 @@ export default function App() {
             || (b.run.stats.speed - a.run.stats.speed));
 
     return <div css={[{
-        fontFamily: "'Noto Sans Mono', monospace",
         fontSize: "0.7em",
-        color: "#00ff11",
 
         display: "flex",
         flexDirection: "column",
-    }, /*css*/`
-        & button {
-            padding: 0px;
-            border: none;
-            color: #00ff11;
-            background: #00ff1150;
-            font-family: 'Noto Sans Mono', monospace;
-            font-size: 1em;
-            width: fit-content;
-        }
-        & button:hover {
-            background: #00ff1160;
-        }
-        & button:active {
-            background: #00ff1170;
-        }
-        & button::before {
-            content: "[\\00a0\\00a0";
-        }
-        & button:focus::before {
-            content: "[\\00a0-";
-        }
-        & button::after {
-            content: "\\00a0\\00a0]";
-        }
-        & button:focus::after {
-            content: "-\\00a0]";
-        }
-
-        & button:disabled {
-            color: #00980a;
-            background: #00ff1120;
-        }
-        & button:disabled:hover {
-            background: #00ff1120;
-        }
-
-        & button.short::before {
-            content: "[";
-        }
-        & button.short::after {
-            content: "]";
-        }
-    `]}>
+    }, retroThemeCss]}>
         <div css={{
             display: "flex",
             flexDirection: "row",

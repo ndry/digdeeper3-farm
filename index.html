@@ -30,13 +30,15 @@
 		import { RecoilRoot } from "recoil";
 
 		import { App } from "./src/app/app";
-		import nb_nb_2023_07_06 from "./src/nb/nb-2023-07-06";
+		import * as pages from "./src/app/pages";
 
 		console.log("appVersion", appVersion);
 
 		const SearchComponent = (() => {
 			const s = new URLSearchParams(location.search);
-			if (s.has("nb_nb_2023_07_06")) { return nb_nb_2023_07_06; }
+			return Object.entries(pages)
+				.find(([key, page]) => s.has(key))
+				?.[1];
 		})() ?? App;
 
 		const Component =
