@@ -44,11 +44,13 @@ export default function App() {
         scale,
         spaceSize,
         runCount,
+        firstRunCountFactor,
     } = useControls({
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
         runCount: { value: 40, min: 1, max: 2000, step: 1 },
+        firstRunCountFactor: { value: 40, min: 1, max: 200, step: 1 },
     });
 
     const { runs } = useMemo(() => {
@@ -64,7 +66,11 @@ export default function App() {
             startFillState: 0,
             stateMap: [1, 0, 2],
         } as const;
-        const runs = Array.from({ length: model ? runCount : 500 }, (_, i) => ({
+        const runs = Array.from({
+            length: model
+                ? runCount
+                : (firstRunCountFactor * runCount),
+        }, (_, i) => ({
             i,
             run: run({
                 dropzone,
@@ -97,7 +103,7 @@ export default function App() {
     }, [runs, isRunning]);
     const selectedRunWithNum = runs[selectedRunIndex];
 
-    const soretedRuns = [...runs]
+    const sortedRuns = [...runs]
         .sort((a, b) =>
             (b.run.stats.maxDepth - a.run.stats.maxDepth)
             || (b.run.stats.speed - a.run.stats.speed));
@@ -114,7 +120,7 @@ export default function App() {
         }}>
             <RunSightView
                 css={{ padding: "1px" }}
-                run1={soretedRuns[0].run}
+                run1={sortedRuns[0].run}
                 scale={scale}
             />
             {selectedRunWithNum && <RunSightView
@@ -137,7 +143,7 @@ export default function App() {
                 renderTrigger: {renderTrigger} / tickCount: {runs[0].run.stats.tickCount}
                 <div css={{
                     overflow: "auto",
-                    height: "500px",
+                    height: "600px",
                 }}>
                     <table css={[{
                         textAlign: "right",
@@ -155,8 +161,8 @@ export default function App() {
                             </tr>
                         </thead>
                         <tbody>
-                            {soretedRuns
-                                .slice(0, 10)
+                            {sortedRuns
+                                .slice(0, runCount)
                                 .map(({ run, i }) => {
                                     const { args, stats } = run;
                                     const {
@@ -200,6 +206,7 @@ export default function App() {
                                         </td>
                                     </tr>;
                                 })}
+                            {sortedRuns.length > runCount && <tr><td>...</td></tr>}
                         </tbody>
                     </table>
                 </div>
@@ -209,14 +216,26 @@ export default function App() {
             onClick={async () => {
                 if (!selectedRunWithNum) { return; }
                 // await tf.setBackend("webgpu");
-                await tf.setBackend("webgl");
                 // await tf.setBackend("wasm");
                 const { args } = selectedRunWithNum.run;
-                setModel(await trainModel({
+                if (args.copilotModel) {
+                    await args.copilotModel.model.save("indexeddb://nb-2023-07-06-1");
+                }
+                await tf.setBackend("webgl");
+                if (args.copilotModel) {
+                    args.copilotModel.model = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-1")) as tf.Sequential;
+                }
+                const model = await trainModel({
                     runArgs: args,
                     batchSize: 5000,
-                    batchCount: 100,
-                }));
+                    batchCount: 20, // 100
+                    epochs: 10,
+                });
+                await model.model.save("indexeddb://nb-2023-07-06-1");
+                await tf.setBackend("wasm");
+                model.model = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-1")) as tf.Sequential;
+                setModel(model);
+
             }}
             disabled={!selectedRunWithNum}
         >

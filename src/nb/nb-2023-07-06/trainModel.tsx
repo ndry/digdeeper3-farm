@@ -8,22 +8,24 @@ export async function trainModel({
     batchSize = 5000,
     batchCount = 10,
     log = console.log.bind(console),
+    epochs = 1,
 }: {
     runArgs: Parameters<typeof run>[0],
     batchSize?: number,
     batchCount?: number,
     log?: (msg: any) => void,
+    epochs?: number,
 }) {
     console.log({ runArgs });
-    const theRun = run(runArgs);
 
-    console.log({ "theRun.getState().length": theRun.getState().length });
+    const stateLength = run(runArgs).getState().length;
+    console.log({ "run(runArgs).getState().length": stateLength });
     const model = tf.sequential();
     model.add(tf.layers.dense({
         units: 250,
         activation: "relu",
         inputShape: [
-            theRun.getState().length,
+            stateLength,
         ],
         batchSize,
     }));
@@ -46,6 +48,7 @@ export async function trainModel({
 
     await model.fitDataset(
         tf.data.generator(function* () {
+            const theRun = run(runArgs);
             for (let i = 0; i < batchCount; i++) {
                 const perfStart = performance.now();
                 const xs = [];
@@ -69,7 +72,7 @@ export async function trainModel({
             }
         }),
         {
-            epochs: 1,
+            epochs,
             callbacks: {
                 onEpochEnd: (epoch, logs) => {
                     log({ trainModel: "onEpochEnd", epoch, logs });
