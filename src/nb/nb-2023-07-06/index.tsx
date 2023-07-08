@@ -50,7 +50,7 @@ export default function App() {
         scale: { value: 2, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
         runCount: { value: 40, min: 1, max: 2000, step: 1 },
-        firstRunCountFactor: { value: 40, min: 1, max: 200, step: 1 },
+        firstRunCountFactor: { value: 100, min: 1, max: 200, step: 1 },
     });
 
     const { runs } = useMemo(() => {
@@ -242,5 +242,45 @@ export default function App() {
             train on selected run
             {selectedRunWithNum && ` (${selectedRunWithNum.i}/ts-${selectedRunWithNum.run.args.tickSeed})`}
         </button>
-    </div>;
+        <br />
+        <button
+            onClick={async () => {
+                const bestRuns = sortedRuns.slice(0, 10);
+                for (let i = 0; i < bestRuns.length; i++) {
+                    const { args } = bestRuns[i].run;
+                    if (!args.copilotModel) { continue; }
+                    await args.copilotModel.model
+                        .save(`indexeddb://nb-2023-07-06-2-${i}`);
+                }
+                await tf.setBackend("webgl");
+                for (let i = 0; i < bestRuns.length; i++) {
+                    const { args } = bestRuns[i].run;
+                    if (!args.copilotModel) { continue; }
+                    args.copilotModel.model =
+                        (await tf.loadLayersModel(`indexeddb://nb-2023-07-06-2-${i}`)) as tf.Sequential;
+                }
+                let modelToTrain = bestRuns[0].run.args.copilotModel?.model;
+                for (let i = 0; i < bestRuns.length; i++) {
+                    modelToTrain = await trainModel({
+                        runArgs: bestRuns[i].run.args,
+                        batchSize: 5000,
+                        batchCount: 20,
+                        epochs: 1,
+                        modelToTrain,
+                    });
+                }
+                await modelToTrain?.save("indexeddb://nb-2023-07-06-2");
+                await tf.setBackend("wasm");
+                modelToTrain = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-2")) as tf.Sequential;
+                setModel({
+                    model: modelToTrain,
+                    id: Math.random().toString().slice(2, 6),
+                });
+
+
+            }}
+        >
+            train on 10 best runs
+        </button>
+    </div >;
 }

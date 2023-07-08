@@ -115,10 +115,8 @@ export const run = (args: ReadonlyDeep<{
         return at(t, x);
     };
 
-    const playerPosition: [number, number] = [
-        Math.floor(spaceSize / 2),
-        0,
-    ];
+    let playerPositionX = Math.floor(spaceSize / 2);
+    let playerPositionT = 0;
     let playerEnergy = 3;
     let maxDepth = 0;
     let tickCount = 0;
@@ -127,23 +125,24 @@ export const run = (args: ReadonlyDeep<{
     const tickRandom = new LehmerPrng(tickSeed);
 
     let stats: ReturnType<typeof createStats> | undefined = undefined;
+    const possibleDirections = [0, 0, 0, 0] as (0 | 1 | 2 | 3)[];
     const tick = () => {
         stats = undefined;
         tickCount++;
-        const possibleDirections = ([forward, left, right, backward] as const)
-            .filter(d => {
-                const nx = playerPosition[0] + directionVec[d][0];
-                const nt = playerPosition[1] + directionVec[d][1];
-                if (nt < depth) { return false; }
-                if (nx < 1 || nx >= spaceSize - 1) { return false; }
-                const s = at(nt, nx);
-                if (s === stateCount) { return true; } // visited
-                if (s === 0) { return true; } // empty
-                if (s === 1) { return false; } // wall
-                // if (s === 1) { return playerEnergy >= 9; } // wall
-                if (s === 2) { return true; } // energy
-                return _never();
-            });
+
+        possibleDirections.length = 0;
+        for (let _d = 0; _d < 4; _d++) {
+            const d = _d as 0 | 1 | 2 | 3;
+            const nx = playerPositionX + directionVec[d][0];
+            const nt = playerPositionT + directionVec[d][1];
+            if (nt < depth) { continue; }
+            if (nx < 0 || nx >= spaceSize) { continue; }
+            const s = at(nt, nx);
+            if (s === 1) { continue; } // wall
+
+            // visited | empty | energy
+            possibleDirections.push(d);
+        }
 
         if (possibleDirections.length === 0) {
             console.log("Game over: No possible directions");
@@ -180,15 +179,15 @@ export const run = (args: ReadonlyDeep<{
             direction = possibleDirections[tickRandom.next() % possibleDirections.length];
         }
 
-        playerPosition[0] += directionVec[direction][0];
-        playerPosition[1] += directionVec[direction][1];
-        const s = at(playerPosition[1], playerPosition[0]);
+        playerPositionX += directionVec[direction][0];
+        playerPositionT += directionVec[direction][1];
+        const s = at(playerPositionT, playerPositionX);
         if (s === 2) { playerEnergy++; }
         if (s === 1) { playerEnergy -= 9; }
-        evaluateSpacetime(playerPosition[1] + 3) // ensure next slice before altering current
-        spacetime[playerPosition[1]][playerPosition[0]] = stateCount;
-        if (playerPosition[1] > maxDepth) {
-            maxDepth = playerPosition[1];
+        evaluateSpacetime(playerPositionT + 3) // ensure next slice before altering current
+        spacetime[playerPositionT][playerPositionX] = stateCount;
+        if (playerPositionT > maxDepth) {
+            maxDepth = playerPositionT;
             depth = Math.max(0, maxDepth - depthLeftBehind);
             speed = maxDepth / tickCount;
         }
@@ -198,7 +197,7 @@ export const run = (args: ReadonlyDeep<{
     const getState = () => [
         ...neighborhood
             .map(([dx, dt]) => {
-                const st = atWithBounds(playerPosition[1] + dt, playerPosition[0] + dx);
+                const st = atWithBounds(playerPositionT + dt, playerPositionX + dx);
                 return ((st === 0) || (st === 2)) ? 0 : 1;
             }),
         // playerEnergy,
@@ -213,8 +212,8 @@ export const run = (args: ReadonlyDeep<{
         playerEnergy,
         depth,
         maxDepth,
-        playerPositionX: playerPosition[0],
-        playerPositionT: playerPosition[1],
+        playerPositionX,
+        playerPositionT,
         tickCount,
         speed,
     } as const);

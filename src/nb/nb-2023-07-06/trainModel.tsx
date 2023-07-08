@@ -9,12 +9,14 @@ export async function trainModel({
     batchCount = 10,
     log = console.log.bind(console),
     epochs = 1,
+    modelToTrain,
 }: {
     runArgs: Parameters<typeof run>[0],
     batchSize?: number,
     batchCount?: number,
     log?: (msg: any) => void,
     epochs?: number,
+    modelToTrain?: tf.Sequential,
 }) {
     console.log({ runArgs });
 
@@ -42,8 +44,8 @@ export async function trainModel({
         metrics: ["accuracy"],
     });
 
-    if (runArgs.copilotModel) {
-        model.setWeights(runArgs.copilotModel.model.getWeights());
+    if (modelToTrain) {
+        model.setWeights(modelToTrain.getWeights());
     }
 
     await model.fitDataset(
@@ -86,5 +88,5 @@ export async function trainModel({
     // .dataSync();
     // console.log(p);
 
-    return { model, id: Math.random().toString().slice(2) };
+    return model;
 }
