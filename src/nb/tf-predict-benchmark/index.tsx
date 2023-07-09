@@ -1,21 +1,22 @@
 import usePromise from "react-use-promise";
-import { retroThemeCss } from "./nb-2023-07-06/retro-theme-css";
+import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { trainModel } from "./nb-2023-07-06/trainModel";
-import { version as caVersion } from "../ca/version";
+import { trainModel } from "../nb-2023-07-06/trainModel";
+import { version as caVersion } from "../../ca/version";
 import { useState } from "react";
 import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm";
 setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
 import { useControls } from "leva";
 import jsonBeautify from "json-beautify";
-import { run } from "./nb-2023-07-06/run";
+import { run } from "../nb-2023-07-06/run";
+import { measurePredictionsNaiveCache } from "./measure-predictions-naive-cache";
+import { modelUrl } from "./model-url";
+import { measurePredictionsBasic } from "./measure-predictions-basic";
 
 // todo
-// benchmark caching the prediction naively
 // benchmark caching the prediction with a custom hasm map
 
-const modelUrl = "indexeddb://tf-predict-benchmark-model-1";
 
 export default function App() {
     const [modelCheckTrigger, setModelCheckTrigger] = useState(0);
@@ -77,54 +78,19 @@ export default function App() {
             Model is present
             <br />
             <br />
-            <button onClick={async () => {
-                console.log("setting backend to wasm");
-                await tf.setBackend("wasm");
-                console.log("loading model");
-                const model = await tf.loadLayersModel(modelUrl);
-                const count = 10000;
-
-                let perf = 0;
-                const theRun = run({
-                    dropzone: {
-                        code: {
-                            v: caVersion,
-                            stateCount: 3,
-                            rule: "271461095179572113182746752230348630343",
-                        },
-                        depthLeftBehind: 100,
-                        spaceSize: 151,
-                        seed: 4242,
-                        startFillState: 0,
-                        stateMap: [1, 0, 2],
-                    },
-                    tickSeed: 4243,
-                    copilotModel: undefined,
-                });
-                console.log("predicting");
-                for (let i = 0; i < count; i++) {
-
-                    const perfStart = performance.now();
-                    [...(model.predict([
-                        tf.tensor([theRun.getSight()]),
-                    ]) as tf.Tensor).dataSync()];
-                    const perfEnd = performance.now();
-                    perf += perfEnd - perfStart;
-
-                    theRun.tick();
+            <button
+                onClick={async () =>
+                    addResult(await measurePredictionsBasic())
                 }
-                console.log("done");
-
-                addResult({
-                    d: new Date().toISOString(),
-                    p1Us: (perf / count * 1000).toFixed(2),
-                    perfPerOne: perf / count,
-                    count,
-                    perf,
-                });
-            }
-            }>Measure predicitons</button>
-        </div>}
+            >Measure predicitons</button>
+            &nbsp;
+            <button
+                onClick={async () =>
+                    addResult(await measurePredictionsNaiveCache())
+                }
+            >Measure predicitons (naive cache)</button>
+        </div>
+        }
         <br />
         <div css={{ fontSize: "1.5em" }}>
             {results.map((r, i) => <div key={i}>
@@ -133,5 +99,5 @@ export default function App() {
                 </pre>
             </div>)}
         </div>
-    </div>;
+    </div >;
 }
