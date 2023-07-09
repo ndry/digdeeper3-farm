@@ -2,7 +2,7 @@ import usePromise from "react-use-promise";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { trainModel } from "../nb-2023-07-06/trainModel";
+import { createModel, trainModel } from "../nb-2023-07-06/trainModel";
 import { version as caVersion } from "../../ca/version";
 import { useState } from "react";
 import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm";
@@ -15,7 +15,7 @@ import { modelUrl } from "./model-url";
 import { measurePredictionsBasic } from "./measure-predictions-basic";
 
 // todo
-// benchmark caching the prediction with a custom hasm map
+// benchmark caching the prediction with a custom hash map
 
 
 export default function App() {
@@ -47,25 +47,31 @@ export default function App() {
                 console.log("setting backend to webgl");
                 await tf.setBackend("webgl");
                 console.log("training model");
-                const model = await trainModel({
-                    runArgs: {
-                        dropzone: {
-                            code: {
-                                v: caVersion,
-                                stateCount: 3,
-                                rule: "271461095179572113182746752230348630343",
-                            },
-                            depthLeftBehind: 100,
-                            spaceSize: 151,
-                            seed: 4242,
-                            startFillState: 0,
-                            stateMap: [1, 0, 2],
+                const runArgs: Parameters<typeof run>[0] = {
+                    dropzone: {
+                        code: {
+                            v: caVersion,
+                            stateCount: 3,
+                            rule: "271461095179572113182746752230348630343",
                         },
-                        tickSeed: 4243,
-                        copilotModel: undefined,
+                        depthLeftBehind: 100,
+                        spaceSize: 151,
+                        seed: 4242,
+                        startFillState: 0,
+                        stateMap: [1, 0, 2],
                     },
+                    tickSeed: 4243,
+                    copilotModel: undefined,
+                };
+                const model = createModel({
+                    batchSize: 5000,
+                    stateLength: run(runArgs).getSight().length,
+                })
+                await trainModel({
+                    runArgs,
                     batchSize: 5000,
                     batchCount: 10,
+                    modelToTrain: model,
                 });
                 console.log("saving model");
                 model.save(modelUrl);

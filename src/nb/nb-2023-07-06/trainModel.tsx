@@ -3,25 +3,12 @@ import { run } from "./run";
 import * as tf from "@tensorflow/tfjs";
 
 
-export async function trainModel({
-    runArgs,
-    batchSize = 5000,
-    batchCount = 10,
-    log = console.log.bind(console),
-    epochs = 1,
-    modelToTrain,
+export function createModel({
+    stateLength, batchSize,
 }: {
-    runArgs: Parameters<typeof run>[0],
-    batchSize?: number,
-    batchCount?: number,
-    log?: (msg: any) => void,
-    epochs?: number,
-    modelToTrain?: tf.Sequential,
+    stateLength: number,
+    batchSize: number,
 }) {
-    console.log({ runArgs });
-
-    const stateLength = run(runArgs).getSight().length;
-    console.log({ "run(runArgs).getState().length": stateLength });
     const model = tf.sequential();
     model.add(tf.layers.dense({
         units: 250,
@@ -38,17 +25,34 @@ export async function trainModel({
     model.add(tf.layers.dense({ units: 250, activation: "relu" }));
     model.add(tf.layers.dense({ units: 4, activation: "softmax" }));
 
-    model.compile({
+    return model;
+}
+
+
+export async function trainModel({
+    runArgs,
+    batchSize = 5000,
+    batchCount = 10,
+    log = console.log.bind(console),
+    epochs = 1,
+    modelToTrain,
+}: {
+    runArgs: Parameters<typeof run>[0],
+    batchSize?: number,
+    batchCount?: number,
+    log?: (msg: any) => void,
+    epochs?: number,
+    modelToTrain: tf.Sequential,
+}) {
+    console.log({ runArgs });
+
+    modelToTrain.compile({
         optimizer: tf.train.adam(),
         loss: "sparseCategoricalCrossentropy",
         metrics: ["accuracy"],
     });
 
-    if (modelToTrain) {
-        model.setWeights(modelToTrain.getWeights());
-    }
-
-    await model.fitDataset(
+    await modelToTrain.fitDataset(
         tf.data.generator(function* () {
             const theRun = run(runArgs);
             for (let i = 0; i < batchCount; i++) {
@@ -64,7 +68,7 @@ export async function trainModel({
                 const perfEnd = performance.now();
                 log({
                     trainModel: "tickCount",
-                    tickCount: theRun.tickCount,
+                    tickCount: theRun.stepCount,
                     perf: perfEnd - perfStart,
                 });
                 yield {
@@ -83,10 +87,5 @@ export async function trainModel({
         },
     );
 
-
-    // const p = (model.predict(tf.tensor([[0, 1, 1]])) as tf.Tensor)
-    // .dataSync();
-    // console.log(p);
-
-    return model;
+    return modelToTrain;
 }

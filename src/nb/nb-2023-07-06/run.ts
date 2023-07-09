@@ -214,7 +214,7 @@ export const run = (args: Readonly<{
         tick1,
         getStep,
         getSight,
-        get tickCount() { return stepCount; },
+        get stepCount() { return stepCount; },
         at,
     };
 };
