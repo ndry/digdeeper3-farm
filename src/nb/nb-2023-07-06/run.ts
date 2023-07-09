@@ -55,7 +55,7 @@ export const run = (args: Readonly<{
     }>,
     /**
      * If provided, should be initialized with a length.
-     * Will be filled each tick as long as tick < length.
+     * Will be filled each step as long as step < length.
      */
     stepRecorder?: Uint8Array,
     recordedSteps?: Uint8Array, // Readonly<Uint8Array>
@@ -128,14 +128,14 @@ export const run = (args: Readonly<{
     let playerPositionT = 0;
     // let playerEnergy = 3;
     let maxDepth = 0;
-    let tickCount = 0;
+    let stepCount = 0;
     let depth = 0;
     let speed = 0;
 
     const getStep =
         recordedSteps
             ? bind(getRecordWalkerStep, undefined, {
-                get tickCount() { return tickCount; },
+                get stepCount() { return stepCount; },
                 recordedSteps,
             })
             : copilotModel
@@ -156,12 +156,10 @@ export const run = (args: Readonly<{
                 });
 
     let stats: ReturnType<typeof createStats> | undefined = undefined;
-    const tick = () => {
+    const step = (direction: 0 | 1 | 2 | 3) => {
         stats = undefined;
-
-        const direction = getStep();
-        if (stepRecorder && tickCount < stepRecorder.length) {
-            stepRecorder[tickCount] = direction;
+        if (stepRecorder && stepCount < stepRecorder.length) {
+            stepRecorder[stepCount] = direction;
         }
 
 
@@ -178,20 +176,23 @@ export const run = (args: Readonly<{
         if (playerPositionT > maxDepth) {
             maxDepth = playerPositionT;
             depth = Math.max(0, maxDepth - depthLeftBehind);
-            speed = maxDepth / tickCount;
+            speed = maxDepth / stepCount;
         }
 
-        tickCount++;
-
+        stepCount++;
+    };
+    const tick = () => {
+        const direction = getStep();
+        step(direction);
         return direction;
     };
-    const getState = bind(getNeuralWalkerSight, undefined, {
+    const getSight = bind(getNeuralWalkerSight, undefined, {
         get playerPositionX() { return playerPositionX; },
         get playerPositionT() { return playerPositionT; },
         atWithBounds,
     });
     const tick1 = () => {
-        const state = getState();
+        const state = getSight();
         const direction = tick();
         return { state, direction };
     };
@@ -201,7 +202,7 @@ export const run = (args: Readonly<{
         maxDepth,
         playerPositionX,
         playerPositionT,
-        tickCount,
+        stepCount,
         speed,
     } as const);
 
@@ -211,8 +212,9 @@ export const run = (args: Readonly<{
         get args() { return args; },
         tick,
         tick1,
-        getState,
-        get tickCount() { return tickCount; },
+        getStep,
+        getSight,
+        get tickCount() { return stepCount; },
         at,
     };
 };

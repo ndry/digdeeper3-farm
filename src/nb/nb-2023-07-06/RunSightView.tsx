@@ -74,7 +74,7 @@ export function RunSightView({
         };
         render();
         // return () => cancelAnimationFrame(handle);
-    }, [canvasRef.current, scale, run1, run1.stats.tickCount]);
+    }, [canvasRef.current, scale, run1, run1.stats.stepCount]);
 
     return <div {...props}>
         <canvas

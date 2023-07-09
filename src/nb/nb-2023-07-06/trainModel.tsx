@@ -20,7 +20,7 @@ export async function trainModel({
 }) {
     console.log({ runArgs });
 
-    const stateLength = run(runArgs).getState().length;
+    const stateLength = run(runArgs).getSight().length;
     console.log({ "run(runArgs).getState().length": stateLength });
     const model = tf.sequential();
     model.add(tf.layers.dense({

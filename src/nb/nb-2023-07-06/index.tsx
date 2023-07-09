@@ -141,7 +141,7 @@ export default function App() {
                     &nbsp;
                 </>}
                 <br />
-                renderTrigger: {renderTrigger} / tickCount: {runs[0].run.stats.tickCount}
+                renderTrigger: {renderTrigger} / stepCount: {runs[0].run.stats.stepCount}
                 <div css={{
                     overflow: "auto",
                     height: "600px",
