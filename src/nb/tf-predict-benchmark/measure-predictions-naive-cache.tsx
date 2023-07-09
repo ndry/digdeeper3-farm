@@ -9,7 +9,7 @@ export async function measurePredictionsNaiveCache() {
     await tf.setBackend("wasm");
     console.log("loading model");
     const model = await tf.loadLayersModel(modelUrl);
-    const count = 50000;
+    const count = 100000;
 
     let perf = 0;
     const theRun = run({
@@ -52,8 +52,11 @@ export async function measurePredictionsNaiveCache() {
         perfPerOne: perf / count,
         count,
         perf,
+        valuesInCache: Object.keys(cache).length,
+        valuesInCachePerOne: Object.keys(cache).length / count,
     };
 }
 
 
-// got x2 vs basic
+// got x2 vs basic with ~50% cache hit rate
+// so, maive cache is overwhemingly more performant than the predict

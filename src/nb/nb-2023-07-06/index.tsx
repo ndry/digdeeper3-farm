@@ -13,16 +13,17 @@ import "@tensorflow/tfjs-backend-webgl";
 import { retroThemeCss } from "./retro-theme-css";
 import update from "immutability-helper";
 import { _never } from "../../utils/_never";
+import { ReadonlyDeep } from "../../utils/readonly-deep";
 
 
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const [selectedRunIndex, setSelectedRunIndex] = useState(0);
-    const [model, setModel] = useState<{
-        model: tf.Sequential,
+    const [models, setModels] = useState<Array<{
+        model: ReadonlyDeep<tf.Sequential>,
         id: string,
-    } | undefined>(undefined);
+    }>>([]);
 
     function step(ticks: number) {
         for (const run of runs) {
@@ -45,10 +46,10 @@ export default function App() {
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
-        runCount: { value: 40, min: 1, max: 2000, step: 1 },
+        runCount: { value: 80, min: 1, max: 2000, step: 1 },
         firstRunCountFactor: { value: 20, min: 1, max: 200, step: 1 },
         batchSize: { value: 5000, min: 1, max: 100000, step: 1 },
-        batchCount: { value: 20, min: 1, max: 1000, step: 1 },
+        batchCount: { value: 10, min: 1, max: 1000, step: 1 },
     });
 
     const runLength = batchCount * batchSize;
@@ -67,7 +68,7 @@ export default function App() {
             stateMap: [1, 0, 2],
         } as const;
         const runs = Array.from({
-            length: model
+            length: models.length > 0
                 ? runCount
                 : (firstRunCountFactor * runCount),
         }, (_, i) => ({
@@ -75,7 +76,9 @@ export default function App() {
             run: run({
                 dropzone,
                 tickSeed: seed + i * 10000 + i * 2,
-                copilotModel: (i > runCount * 0.75) ? model : undefined,
+                copilotModel: (i > runCount * 0.75)
+                    ? models[i % models.length]
+                    : undefined,
                 stepRecorder: new Uint8Array(runLength),
             }),
         }));
@@ -83,7 +86,7 @@ export default function App() {
         return {
             runs,
         };
-    }, [seed, spaceSize, runCount, model, runLength]);
+    }, [seed, spaceSize, runCount, models, runLength]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
@@ -150,7 +153,7 @@ export default function App() {
                         textAlign: "right",
                         borderSpacing: "0px",
                     },
-                /*css*/`& tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.07);}`,
+                /*css*/"& tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.07);}",
                     ]}>
                         <thead>
                             <tr>
@@ -181,14 +184,14 @@ export default function App() {
                                                 ? "#00ff1140"
                                                 : "transparent",
                                             cursor: "pointer",
-                                        }, /*css*/` &:hover { background: #00ff1160; }`]}
+                                        }, /*css*/" &:hover { background: #00ff1160; }"]}
 
                                         onClick={() => {
                                             setSelectedRunIndex(i);
                                             console.log({ i, run, args, stats });
                                         }}
-                                        // todo: do not stringify the data arrays
-                                        // title={jsonBeautify({ args, stats }, null as any, 2, 80)}
+                                    // todo: do not stringify the data arrays
+                                    // title={jsonBeautify({ args, stats }, null as any, 2, 80)}
                                     >
                                         <td>{i}</td>
                                         <td
@@ -227,7 +230,7 @@ export default function App() {
                 if (args.copilotModel) {
                     args.copilotModel.model = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-1")) as tf.Sequential;
                 }
-                const model = await trainModel({
+                let model = await trainModel({
                     runArgs: update(args, {
                         recordedSteps: { $set: args.stepRecorder ?? _never() },
                     }),
@@ -235,10 +238,13 @@ export default function App() {
                     batchCount: 20, // 100
                     epochs: 10,
                 });
-                await model.model.save("indexeddb://nb-2023-07-06-1");
+                await model.save("indexeddb://nb-2023-07-06-1");
                 await tf.setBackend("wasm");
-                model.model = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-1")) as tf.Sequential;
-                setModel(model);
+                model = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-1")) as tf.Sequential;
+                setModels([{
+                    model,
+                    id: Math.random().toString().slice(2),
+                }, ...models].slice(0, 3));
 
             }}
             disabled={!selectedRunWithNum}
@@ -249,26 +255,26 @@ export default function App() {
         <br />
         <button
             onClick={async () => {
-                const bestRuns = sortedRuns.slice(0, 10);
-                for (let i = 0; i < bestRuns.length; i++) {
-                    const { args } = bestRuns[i].run;
-                    if (!args.copilotModel) { continue; }
-                    await args.copilotModel.model
-                        .save(`indexeddb://nb-2023-07-06-2-${i}`);
+                const bestRuns = sortedRuns.slice(0, 10).reverse();
+                let modelToTrain = bestRuns[bestRuns.length - 1].run.args.copilotModel?.model;
+                if (modelToTrain) {
+                    await modelToTrain.save("indexeddb://nb-2023-07-06-3");
                 }
                 await tf.setBackend("webgl");
-                for (let i = 0; i < bestRuns.length; i++) {
-                    const { args } = bestRuns[i].run;
-                    if (!args.copilotModel) { continue; }
-                    args.copilotModel.model =
-                        (await tf.loadLayersModel(`indexeddb://nb-2023-07-06-2-${i}`)) as tf.Sequential;
+                if (modelToTrain) {
+                    modelToTrain = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential;
                 }
-                let modelToTrain = bestRuns[0].run.args.copilotModel?.model;
                 for (let i = 0; i < bestRuns.length; i++) {
+                    const args = bestRuns[i].run.args;
                     modelToTrain = await trainModel({
-                        runArgs: bestRuns[i].run.args,
-                        batchSize: 5000,
-                        batchCount: 20,
+                        runArgs: update(args, {
+                            recordedSteps: {
+                                $set: args.stepRecorder ?? _never(),
+                            },
+                            stepRecorder: { $set: undefined },
+                        }),
+                        batchSize,
+                        batchCount,
                         epochs: 1,
                         modelToTrain,
                     });
@@ -276,10 +282,10 @@ export default function App() {
                 await modelToTrain?.save("indexeddb://nb-2023-07-06-2");
                 await tf.setBackend("wasm");
                 modelToTrain = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-2")) as tf.Sequential;
-                setModel({
+                setModels([{
                     model: modelToTrain,
                     id: Math.random().toString().slice(2, 6),
-                });
+                }, ...models].slice(0, 3));
 
 
             }}

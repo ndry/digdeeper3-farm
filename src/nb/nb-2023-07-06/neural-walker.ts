@@ -33,6 +33,23 @@ export const getNeuralWalkerSight = ({
         // playerEnergy,
     ];
 
+const cache = new WeakMap<
+    ReadonlyDeep<tf.Sequential>,
+    Record<string, number[]>>();
+const getPrediction = (model: ReadonlyDeep<tf.Sequential>, sight: number[]) => {
+    // return [...(model.predict([tf.tensor([sight])]) as tf.Tensor).dataSync()];
+
+    let cacheForModel = cache.get(model);
+    if (cacheForModel === undefined) {
+        cacheForModel = {};
+        cache.set(model, cacheForModel);
+    }
+
+    return cacheForModel[sight.join(",")] ??= [...(model.predict([
+        tf.tensor([sight]),
+    ]) as tf.Tensor).dataSync()];
+};
+
 export const getNeuralWalkerStep = (env: ReadonlyDeep<{
     stateCount: number;
     playerPositionX: number;
@@ -70,10 +87,7 @@ export const getNeuralWalkerStep = (env: ReadonlyDeep<{
 
     let direction: 0 | 1 | 2 | 3 | undefined = undefined;
 
-    const t = model.predict([
-        tf.tensor([getNeuralWalkerSight(env)]),
-    ]) as tf.Tensor;
-    const theOffer = [...t.dataSync()];
+    const theOffer = getPrediction(model, getNeuralWalkerSight(env));
     // console.log({ theOffer });
     const sorted = theOffer
         .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)

@@ -9,7 +9,7 @@ export async function measurePredictionsBasic() {
     await tf.setBackend("wasm");
     console.log("loading model");
     const model = await tf.loadLayersModel(modelUrl);
-    const count = 50000;
+    const count = 100000;
 
     let perf = 0;
     const theRun = run({
