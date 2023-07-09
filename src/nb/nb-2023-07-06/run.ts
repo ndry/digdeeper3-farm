@@ -2,11 +2,13 @@ import { parseFullTransitionLookupTable } from "../../ca";
 import { Code } from "../../ca/code";
 import { fillSpace } from "../../ca/fill-space";
 import { _never } from "../../utils/_never";
-import { LehmerPrng, createLehmer32 } from "../../utils/lehmer-prng";
+import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
-import { tuple } from "../../utils/tuple";
-import { v2 } from "../../utils/v";
 import * as tf from "@tensorflow/tfjs";
+import { getNeuralWalkerStep, getNeuralWalkerSight } from "./neural-walker";
+import { getRandomWalkerStep } from "./random-walker";
+import { bind } from "../../utils/bind";
+import { getRecordWalkerStep } from "./record-walker";
 
 export const forward = 0;
 export const left = 1;
@@ -29,29 +31,34 @@ export type Dropzone = {
     depthLeftBehind: number,// zone or drop?
 };
 
-export const neighborhoodRadius = 8;
-export const neighborhood = [...(function* () {
-    const r = neighborhoodRadius;
-    for (let dt = -r; dt <= r; dt++) {
-        for (let dx = -r; dx <= r; dx++) {
-            if (Math.abs(dt) + Math.abs(dx) <= r) {
-                yield [dt, dx] as v2;
-            }
-        }
-    }
-})()];
-export const windowLength = 1;
+
+export const x = (
+    trek: number[],
+) => {
+    let i = 0;
+    return () => {
+        const v = trek[i];
+        i++;
+        return v;
+    };
+};
 
 /**
  * A single run of a single agent in a single zone
  */
-export const run = (args: ReadonlyDeep<{
-    dropzone: Dropzone,
+export const run = (args: Readonly<{
+    dropzone: ReadonlyDeep<Dropzone>,
     tickSeed: number,
-    copilotModel: {
+    copilotModel?: ReadonlyDeep<{
         id: string,
         model: tf.Sequential,
-    } | undefined,
+    }>,
+    /**
+     * If provided, should be initialized with a length.
+     * Will be filled each tick as long as tick < length.
+     */
+    stepRecorder?: Uint8Array,
+    recordedSteps?: Uint8Array, // Readonly<Uint8Array>
 }>) => {
     const {
         dropzone: {
@@ -64,10 +71,12 @@ export const run = (args: ReadonlyDeep<{
         },
         tickSeed,
         copilotModel,
+        stepRecorder,
+        recordedSteps,
     } = args;
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
-    const spacetimeRandom32 = createLehmer32(spacetimeSeed);
+    const spacetimeRandom32 = createMulberry32(spacetimeSeed);
     const iStateMap = [
         stateMap.indexOf(0),
         stateMap.indexOf(1),
@@ -117,74 +126,54 @@ export const run = (args: ReadonlyDeep<{
 
     let playerPositionX = Math.floor(spaceSize / 2);
     let playerPositionT = 0;
-    let playerEnergy = 3;
+    // let playerEnergy = 3;
     let maxDepth = 0;
     let tickCount = 0;
     let depth = 0;
     let speed = 0;
-    const tickRandom = new LehmerPrng(tickSeed);
+
+    const getStep =
+        recordedSteps
+            ? bind(getRecordWalkerStep, undefined, {
+                get tickCount() { return tickCount; },
+                recordedSteps,
+            })
+            : copilotModel
+                ? bind(getNeuralWalkerStep, undefined, {
+                    stateCount,
+                    get playerPositionX() { return playerPositionX; },
+                    get playerPositionT() { return playerPositionT; },
+                    atWithBounds,
+                    random32: createMulberry32(tickSeed),
+                    model: copilotModel.model,
+                })
+                : bind(getRandomWalkerStep, undefined, {
+                    stateCount,
+                    get playerPositionX() { return playerPositionX; },
+                    get playerPositionT() { return playerPositionT; },
+                    atWithBounds,
+                    random32: createMulberry32(tickSeed),
+                });
 
     let stats: ReturnType<typeof createStats> | undefined = undefined;
-    const possibleDirections = [0, 0, 0, 0] as (0 | 1 | 2 | 3)[];
     const tick = () => {
         stats = undefined;
-        tickCount++;
 
-        possibleDirections.length = 0;
-        for (let _d = 0; _d < 4; _d++) {
-            const d = _d as 0 | 1 | 2 | 3;
-            const nx = playerPositionX + directionVec[d][0];
-            const nt = playerPositionT + directionVec[d][1];
-            if (nt < depth) { continue; }
-            if (nx < 0 || nx >= spaceSize) { continue; }
-            const s = at(nt, nx);
-            if (s === 1) { continue; } // wall
-
-            // visited | empty | energy
-            possibleDirections.push(d);
+        const direction = getStep();
+        if (stepRecorder && tickCount < stepRecorder.length) {
+            stepRecorder[tickCount] = direction;
         }
 
-        if (possibleDirections.length === 0) {
-            console.log("Game over: No possible directions");
-            return false;
-        }
-
-
-        let direction: 0 | 1 | 2 | 3 | undefined = undefined;
-
-        if (copilotModel) {
-            const t = copilotModel.model.predict([
-                tf.tensor([getState()]),
-            ]) as tf.Tensor;
-            const theOffer = [...t.dataSync()];
-            // console.log({ theOffer });
-
-            const sorted = theOffer
-                .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
-                .filter(([i]) => possibleDirections.includes(i))
-                .sort((a, b) => b[1] - a[1]);
-            for (const [i, v] of sorted) {
-                // if (v < 0.5) { break; }
-                // const p = 1 - (1 - v) ** 2;
-                const p = v;
-                if (tickRandom.nextFloat() < p) {
-                    direction = i;
-                    break;
-                }
-            }
-            if (direction === undefined) {
-                direction = possibleDirections[tickRandom.next() % possibleDirections.length];
-            }
-        } else {
-            direction = possibleDirections[tickRandom.next() % possibleDirections.length];
-        }
 
         playerPositionX += directionVec[direction][0];
         playerPositionT += directionVec[direction][1];
-        const s = at(playerPositionT, playerPositionX);
-        if (s === 2) { playerEnergy++; }
-        if (s === 1) { playerEnergy -= 9; }
-        evaluateSpacetime(playerPositionT + 3) // ensure next slice before altering current
+        // const s = at(playerPositionT, playerPositionX);
+        // if (s === 2) { playerEnergy++; }
+        // if (s === 1) { playerEnergy -= 9; }
+
+        // ensure next slice before altering current
+        evaluateSpacetime(playerPositionT + 3);
+
         spacetime[playerPositionT][playerPositionX] = stateCount;
         if (playerPositionT > maxDepth) {
             maxDepth = playerPositionT;
@@ -192,24 +181,22 @@ export const run = (args: ReadonlyDeep<{
             speed = maxDepth / tickCount;
         }
 
+        tickCount++;
+
         return direction;
     };
-    const getState = () => [
-        ...neighborhood
-            .map(([dx, dt]) => {
-                const st = atWithBounds(playerPositionT + dt, playerPositionX + dx);
-                return ((st === 0) || (st === 2)) ? 0 : 1;
-            }),
-        // playerEnergy,
-    ];
+    const getState = bind(getNeuralWalkerSight, undefined, {
+        get playerPositionX() { return playerPositionX; },
+        get playerPositionT() { return playerPositionT; },
+        atWithBounds,
+    });
     const tick1 = () => {
         const state = getState();
         const direction = tick();
-        if (direction === false) { return; }
         return { state, direction };
     };
     const createStats = () => ({
-        playerEnergy,
+        // playerEnergy,
         depth,
         maxDepth,
         playerPositionX,

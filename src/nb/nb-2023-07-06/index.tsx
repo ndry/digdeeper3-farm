@@ -6,7 +6,7 @@ import jsonBeautify from "json-beautify";
 import { RunSightView } from "./RunSightView";
 import { trainModel } from "./trainModel";
 import * as tf from "@tensorflow/tfjs";
-import { setWasmPaths } from '@tensorflow/tfjs-backend-wasm';
+import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm";
 // setWasmPaths accepts a `prefixOrFileMap` argument which can be either a
 // string or an object. If passing in a string, this indicates the path to
 // the directory where your WASM binaries are located.
@@ -14,6 +14,8 @@ setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
 import "@tensorflow/tfjs-backend-webgpu";
 import "@tensorflow/tfjs-backend-webgl";
 import { retroThemeCss } from "./retro-theme-css";
+import update from "immutability-helper";
+import { _never } from "../../utils/_never";
 
 
 // given the run args and tickcount, train a model
@@ -45,13 +47,19 @@ export default function App() {
         spaceSize,
         runCount,
         firstRunCountFactor,
+        batchSize,
+        batchCount,
     } = useControls({
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
         runCount: { value: 40, min: 1, max: 2000, step: 1 },
-        firstRunCountFactor: { value: 100, min: 1, max: 200, step: 1 },
+        firstRunCountFactor: { value: 20, min: 1, max: 200, step: 1 },
+        batchSize: { value: 5000, min: 1, max: 100000, step: 1 },
+        batchCount: { value: 20, min: 1, max: 1000, step: 1 },
     });
+
+    const runLength = batchCount * batchSize;
 
     const { runs } = useMemo(() => {
         const dropzone = {
@@ -76,13 +84,14 @@ export default function App() {
                 dropzone,
                 tickSeed: seed + i * 10000 + i * 2,
                 copilotModel: (i > runCount * 0.75) ? model : undefined,
+                stepRecorder: new Uint8Array(runLength),
             }),
         }));
 
         return {
             runs,
         };
-    }, [seed, spaceSize, runCount, model]);
+    }, [seed, spaceSize, runCount, model, runLength]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
@@ -186,7 +195,8 @@ export default function App() {
                                             setSelectedRunIndex(i);
                                             console.log({ i, run, args, stats });
                                         }}
-                                        title={jsonBeautify({ args, stats }, null as any, 2, 80)}
+                                        // todo: do not stringify the data arrays
+                                        // title={jsonBeautify({ args, stats }, null as any, 2, 80)}
                                     >
                                         <td>{i}</td>
                                         <td
@@ -226,7 +236,9 @@ export default function App() {
                     args.copilotModel.model = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-1")) as tf.Sequential;
                 }
                 const model = await trainModel({
-                    runArgs: args,
+                    runArgs: update(args, {
+                        recordedSteps: { $set: args.stepRecorder ?? _never() },
+                    }),
                     batchSize: 5000,
                     batchCount: 20, // 100
                     epochs: 10,

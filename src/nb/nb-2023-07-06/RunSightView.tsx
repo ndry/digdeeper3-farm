@@ -1,7 +1,8 @@
-import { neighborhood, neighborhoodRadius, run } from "./run";
+import { run } from "./run";
 import { useLayoutEffect, useRef } from "react";
 import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
 import { jsx } from "@emotion/react";
+import { neighborhood, neighborhoodRadius } from "./neural-walker";
 
 
 export const colorMap = [

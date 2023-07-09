@@ -1,32 +1,30 @@
 import { parseFullTransitionLookupTable } from ".";
-import { LehmerPrng } from "../utils/lehmer-prng";
 import { Code } from "./code";
 import { fillSpace } from "./fill-space";
 
 export function createSpacetimeEvaluator({
-    code, spaceSize, seed, startFillState,
+    code, spaceSize, startFillState, random32,
 }: {
     code: Code;
     spaceSize: number;
     timeSize: number;
     startFillState: number;
-    seed: number;
+    random32: () => number;
 }) {
     const { stateCount } = code;
     const table = parseFullTransitionLookupTable(code);
-    const random = new LehmerPrng(seed);
 
     const spacetime = [
         Array.from({ length: spaceSize }, () => startFillState),
-        Array.from({ length: spaceSize }, () => random.next() % stateCount),
-        Array.from({ length: spaceSize }, () => random.next() % stateCount),
+        Array.from({ length: spaceSize }, () => random32() % stateCount),
+        Array.from({ length: spaceSize }, () => random32() % stateCount),
     ];
 
     const _at = (t: number, x: number) => {
         while (t >= spacetime.length) {
             const space = Array.from({ length: spaceSize }, () => 0);
-            space[0] = random.next() % stateCount;
-            space[space.length - 1] = random.next() % stateCount;
+            space[0] = random32() % stateCount;
+            space[space.length - 1] = random32() % stateCount;
             spacetime.push(space);
             fillSpace(
                 stateCount,
