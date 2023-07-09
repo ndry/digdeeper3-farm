@@ -4,6 +4,7 @@ import { Star } from "@emotion-icons/ionicons-solid/Star";
 import { createFullCanvasImageData32 } from "../utils/create-image-data32";
 import { Code, keyifyCode } from "../ca/code";
 import { createSpacetimeEvaluator } from "../ca/create-spacetime-evaluator";
+import { createMulberry32 } from "../utils/mulberry32";
 
 export const colorMap = [
     "#ff0000",
@@ -42,7 +43,7 @@ export function RulePreview({
             spaceSize: h,
             timeSize: w,
             startFillState: 0,
-            seed: 4242,
+            random32: createMulberry32(4242),
         });
 
         for (let y = 0; y < h; y++) {

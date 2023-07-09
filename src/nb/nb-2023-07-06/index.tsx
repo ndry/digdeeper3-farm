@@ -18,11 +18,6 @@ import update from "immutability-helper";
 import { _never } from "../../utils/_never";
 
 
-// given the run args and tickcount, train a model
-// display the trained model playing the game
-//   - esp compared to the original run and some other runs
-
-
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
