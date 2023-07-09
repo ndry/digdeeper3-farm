@@ -7,9 +7,6 @@ import { RunSightView } from "./RunSightView";
 import { trainModel } from "./trainModel";
 import * as tf from "@tensorflow/tfjs";
 import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm";
-// setWasmPaths accepts a `prefixOrFileMap` argument which can be either a
-// string or an object. If passing in a string, this indicates the path to
-// the directory where your WASM binaries are located.
 setWasmPaths("https://unpkg.com/@tensorflow/tfjs-backend-wasm@4.8.0/dist/");
 import "@tensorflow/tfjs-backend-webgpu";
 import "@tensorflow/tfjs-backend-webgl";
