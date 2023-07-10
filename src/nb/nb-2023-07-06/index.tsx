@@ -1,7 +1,7 @@
 import { useControls } from "leva";
 import { run } from "./run";
 import { version as caVersion } from "../../ca/version";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import jsonBeautify from "json-beautify";
 import { RunSightView } from "./RunSightView";
 import { createModel, trainModel } from "./trainModel";
@@ -26,6 +26,7 @@ export default function App() {
     }>>([]);
     const perfRef = useRef<HTMLSpanElement>(null);
 
+
     function step(ticks: number) {
         for (const run of runs) {
             for (let i = 0; i < ticks; i++) {
@@ -44,6 +45,7 @@ export default function App() {
         batchSize,
         batchCount,
         targetFps,
+        autoLoop,
     } = useControls({
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
         scale: { value: 2, min: 1, max: 10, step: 1 },
@@ -53,9 +55,18 @@ export default function App() {
         batchSize: { value: 5000, min: 1, max: 100000, step: 1 },
         batchCount: { value: 5, min: 1, max: 1000, step: 1 },
         targetFps: { value: 15, min: 0.1, max: 120, step: 0.1 },
+        autoLoop: { value: true },
     });
 
     const runLength = batchCount * batchSize;
+
+    useEffect(() => {
+        if (isRunning) { return; }
+        if (!autoLoop) { return; }
+        setIsRunning(true);
+    },
+        // does not subscribe on isRunning and autoLoop, just uses them
+        [models]);
 
     const { runs } = useMemo(() => {
         const dropzone = {
@@ -105,12 +116,6 @@ export default function App() {
             const perfEnd = performance.now();
             lastDt = perfEnd - perfStart;
             console.log({ "tick + setRenderTrigger": lastDt, lastTicks });
-            if (
-                runs[0].run.stepCount
-                >= (runs[0].run.args.stepRecorder?.length ?? Infinity)
-            ) {
-                setIsRunning(false);
-            }
             const lastPerf = lastTicks / lastDt * 1000;
             perf = perf * 0.95 + lastPerf * 0.05;
             if (perfRef.current) {
@@ -122,10 +127,59 @@ export default function App() {
     }, [runs, isRunning, targetFps]);
     const selectedRunWithNum = runs[selectedRunIndex];
 
+
     const sortedRuns = [...runs]
         .sort((a, b) =>
             (b.run.stats.maxDepth - a.run.stats.maxDepth)
             || (b.run.stats.speed - a.run.stats.speed));
+
+    const trainOnTenBestRuns = async () => {
+        const bestRuns = sortedRuns.slice(0, 10).reverse();
+        const bestRun = bestRuns[bestRuns.length - 1];
+        const modelExists = !!bestRun.run.args.copilotModel;
+
+        await bestRun.run.args.copilotModel?.model.save("indexeddb://nb-2023-07-06-3");
+        await tf.setBackend("webgl");
+        const model = modelExists
+            ? (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential
+            : createModel({
+                stateLength: bestRun.run.getSight().length,
+                batchSize,
+            });
+        for (let i = 0; i < bestRuns.length; i++) {
+            const args = bestRuns[i].run.args;
+            await trainModel({
+                runArgs: update(args, {
+                    recordedSteps: {
+                        $set: args.stepRecorder ?? _never(),
+                    },
+                    stepRecorder: { $set: undefined },
+                }),
+                batchSize,
+                batchCount,
+                epochs: 1,
+                modelToTrain: model,
+            });
+        }
+        await model.save("indexeddb://nb-2023-07-06-3");
+        await tf.setBackend("wasm");
+        setModels([{
+            model: (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential,
+            id: Math.random().toString().slice(2, 6),
+        }, ...models].slice(0, 3));
+    };
+
+
+    useEffect(() => {
+        if (!isRunning) { return; }
+        if (
+            runs[0].run.stepCount
+            < (runs[0].run.args.stepRecorder?.length ?? Infinity)
+        ) { return; }
+        if (!autoLoop) { return; }
+        setIsRunning(false);
+        trainOnTenBestRuns();
+    }, [trainOnTenBestRuns]);
 
     return <div css={[{
         fontSize: "0.7em",
@@ -271,46 +325,11 @@ export default function App() {
             disabled={!selectedRunWithNum}
         >
             train on selected run
-            {selectedRunWithNum && ` (${selectedRunWithNum.i}/ts-${selectedRunWithNum.run.args.tickSeed})`}
+            {selectedRunWithNum
+                && ` (${selectedRunWithNum.i}/ts-${selectedRunWithNum.run.args.tickSeed})`}
         </button>
         <br />
-        <button
-            onClick={async () => {
-                const bestRuns = sortedRuns.slice(0, 10).reverse();
-                const bestRun = bestRuns[bestRuns.length - 1];
-                const modelExists = !!bestRun.run.args.copilotModel;
-
-                await bestRun.run.args.copilotModel?.model.save("indexeddb://nb-2023-07-06-3");
-                await tf.setBackend("webgl");
-                const model = modelExists
-                    ? (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential
-                    : createModel({
-                        stateLength: bestRun.run.getSight().length,
-                        batchSize,
-                    });
-                for (let i = 0; i < bestRuns.length; i++) {
-                    const args = bestRuns[i].run.args;
-                    await trainModel({
-                        runArgs: update(args, {
-                            recordedSteps: {
-                                $set: args.stepRecorder ?? _never(),
-                            },
-                            stepRecorder: { $set: undefined },
-                        }),
-                        batchSize,
-                        batchCount,
-                        epochs: 1,
-                        modelToTrain: model,
-                    });
-                }
-                await model.save("indexeddb://nb-2023-07-06-3");
-                await tf.setBackend("wasm");
-                setModels([{
-                    model: (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential,
-                    id: Math.random().toString().slice(2, 6),
-                }, ...models].slice(0, 3));
-            }}
-        >
+        <button onClick={trainOnTenBestRuns}>
             train on 10 best runs
         </button>
     </div >;
