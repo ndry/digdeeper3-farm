@@ -48,12 +48,12 @@ export default function App() {
         autoLoop,
     } = useControls({
         seed: { value: 4245, min: 1, max: 0xffffffff, step: 1 },
-        scale: { value: 2, min: 1, max: 10, step: 1 },
+        scale: { value: 1, min: 1, max: 10, step: 1 },
         spaceSize: { value: 201, min: 2, max: 1000, step: 1 },
-        runCount: { value: 80, min: 1, max: 2000, step: 1 },
-        firstRunCountFactor: { value: 20, min: 1, max: 200, step: 1 },
+        runCount: { value: 100, min: 1, max: 2000, step: 1 },
+        firstRunCountFactor: { value: 30, min: 1, max: 200, step: 1 },
         batchSize: { value: 5000, min: 1, max: 100000, step: 1 },
-        batchCount: { value: 5, min: 1, max: 1000, step: 1 },
+        batchCount: { value: 10, min: 1, max: 1000, step: 1 },
         targetFps: { value: 15, min: 0.1, max: 120, step: 0.1 },
         autoLoop: { value: true },
     });
@@ -77,7 +77,7 @@ export default function App() {
             },
             depthLeftBehind: 100,
             spaceSize,
-            seed,
+            seed: seed,
             startFillState: 0,
             stateMap: [1, 0, 2],
         } as const;
@@ -89,7 +89,7 @@ export default function App() {
             i,
             run: run({
                 dropzone,
-                tickSeed: seed + i * 10000 + i * 2,
+                tickSeed: i * 10000 + i * 2 + +new Date(),
                 copilotModel: (i > runCount * 0.75)
                     ? models[i % models.length]
                     : undefined,
@@ -100,7 +100,8 @@ export default function App() {
         return {
             runs,
         };
-    }, [seed, spaceSize, runCount, models, runLength]);
+    },
+        [seed, spaceSize, runCount, models, runLength]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
@@ -215,7 +216,11 @@ export default function App() {
                     &nbsp;
                 </>}
                 <br />
-                renderTrigger: {renderTrigger} / stepCount: {runs[0].run.stats.stepCount}
+                stepCount: {runs[0].run.stats.stepCount} / {runLength}
+                &nbsp;
+                ({(runs[0].run.stats.stepCount / runLength * 100).toFixed(2)}%)
+                <br />
+                renderTrigger: {renderTrigger}
                 <div css={{
                     overflow: "auto",
                     height: "600px",
@@ -231,8 +236,8 @@ export default function App() {
                                 <th>..run</th>
                                 <th>.maxDepth</th>
                                 <th>...speed</th>
-                                <th>.tickSeed</th>
-                                <th>.......model</th>
+                                <th>......tickSeed</th>
+                                <th>..model</th>
                             </tr>
                         </thead>
                         <tbody>
