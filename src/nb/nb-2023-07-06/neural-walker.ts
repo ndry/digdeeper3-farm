@@ -35,7 +35,7 @@ export const getNeuralWalkerSight = ({
 
 const cache = new WeakMap<
     ReadonlyDeep<tf.Sequential>,
-    Record<string, number[]>>();
+    Record<string, (readonly [0 | 1 | 2 | 3, number])[]>>();
 const getPrediction = (model: ReadonlyDeep<tf.Sequential>, sight: number[]) => {
     // return [...(model.predict([tf.tensor([sight])]) as tf.Tensor).dataSync()];
 
@@ -45,9 +45,18 @@ const getPrediction = (model: ReadonlyDeep<tf.Sequential>, sight: number[]) => {
         cache.set(model, cacheForModel);
     }
 
-    return cacheForModel[sight.join(",")] ??= [...(model.predict([
-        tf.tensor([sight]),
-    ]) as tf.Tensor).dataSync()];
+    const key = sight.join(",");
+
+    if (!(key in cacheForModel)) {
+        const prediction = model.predict([tf.tensor([sight])]) as tf.Tensor;
+        // console.log({ theOffer });
+        const sorted = [...prediction.dataSync()]
+            .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
+            .sort((a, b) => b[1] - a[1]);
+        cacheForModel[key] = sorted;
+        prediction.dispose();
+    }
+    return cacheForModel[key];
 };
 
 export const getNeuralWalkerStep = (env: ReadonlyDeep<{
@@ -87,13 +96,9 @@ export const getNeuralWalkerStep = (env: ReadonlyDeep<{
 
     let direction: 0 | 1 | 2 | 3 | undefined = undefined;
 
-    const theOffer = getPrediction(model, getNeuralWalkerSight(env));
-    // console.log({ theOffer });
-    const sorted = theOffer
-        .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
-        .filter(([i]) => possibleDirections.includes(i))
-        .sort((a, b) => b[1] - a[1]);
+    const sorted = getPrediction(model, getNeuralWalkerSight(env));
     for (const [i, v] of sorted) {
+        if (!possibleDirections.includes(i)) { continue; }
         // if (v < 0.5) { break; }
         // const p = 1 - (1 - v) ** 2;
         const p = v;
