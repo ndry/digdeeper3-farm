@@ -54,7 +54,10 @@ export function App() {
                 {[
                     ...Object.keys(pages).map(k => `./?${k}`),
                 ].map((path, i) => <a
-                    css={{ display: "block" }}
+                    css={{
+                        display: "block",
+                        backgroundColor: "#af7272",
+                    }}
                     key={i}
                     href={path}
                 >{path}</a>)}
