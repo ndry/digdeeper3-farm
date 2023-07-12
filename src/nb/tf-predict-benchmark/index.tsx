@@ -13,6 +13,8 @@ import { run } from "../nb-2023-07-06/run";
 import { measurePredictionsNaiveCache } from "./measure-predictions-naive-cache";
 import { modelUrl } from "./model-url";
 import { measurePredictionsBasic } from "./measure-predictions-basic";
+import { measurePredictionsBatch } from "./measure-predictions-batch";
+import { measurePredictionsBatchAsync } from "./measure-predictions-batch-async";
 
 // todo
 // benchmark caching the prediction with a custom hash map
@@ -95,6 +97,18 @@ export default function App() {
                     addResult(await measurePredictionsNaiveCache())
                 }
             >Measure predicitons (naive cache)</button>
+            &nbsp;
+            <button
+                onClick={async () =>
+                    addResult(await measurePredictionsBatch())
+                }
+            >Measure predicitons (batch)</button>
+            &nbsp;
+            <button
+                onClick={async () =>
+                    addResult(await measurePredictionsBatchAsync())
+                }
+            >Measure predicitons (batch async)</button>
         </div>
         }
         <br />

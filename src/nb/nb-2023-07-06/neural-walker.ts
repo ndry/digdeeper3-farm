@@ -48,13 +48,15 @@ const getPrediction = (model: ReadonlyDeep<tf.Sequential>, sight: number[]) => {
     const key = sight.join(",");
 
     if (!(key in cacheForModel)) {
-        const prediction = model.predict([tf.tensor([sight])]) as tf.Tensor;
+        const inputTensor = tf.tensor([sight]);
+        const predictionTensor = model.predict([inputTensor]) as tf.Tensor;
         // console.log({ theOffer });
-        const sorted = [...prediction.dataSync()]
+        const sorted = [...predictionTensor.dataSync()]
             .map((v, i) => [i as 0 | 1 | 2 | 3, v] as const)
             .sort((a, b) => b[1] - a[1]);
         cacheForModel[key] = sorted;
-        prediction.dispose();
+        predictionTensor.dispose();
+        inputTensor.dispose();
     }
     return cacheForModel[key];
 };
