@@ -4,17 +4,18 @@ import { Dropzone } from "../nb-2023-07-06/run";
 import { createDropState } from "./drop-state";
 import { getRandomWalkerStep } from "./random-walker";
 
+
 /**
  * Runs a batch of agents with a common step strategy
  * in a same (but not shared) zone
  */
 export function createBatchRun(args: Readonly<{
     dropzone: ReadonlyDeep<Dropzone>;
-    // copilotModel?: ReadonlyDeep<{
-    //     id: string,
-    //     model: tf.Sequential,
-    // }>,
-    batch: ReadonlyArray<Readonly<{
+    copilotModel?: ReadonlyDeep<{
+        id: string,
+        // model: tf.Sequential,
+    }>,
+    runArgss: ReadonlyArray<Readonly<{
         tickSeed: number;
         /**
         * If provided, should be initialized with a length.
@@ -24,16 +25,17 @@ export function createBatchRun(args: Readonly<{
         recordedSteps?: Uint8Array; // Readonly<Uint8Array>
     }>>;
 }>) {
-    const { dropzone, batch } = args;
-    const runs = batch.map(entryArgs => ({
-        entryArgs,
-        stepRandom32: createMulberry32(entryArgs.tickSeed),
+    const { dropzone, runArgss } = args;
+    const runs = runArgss.map(runArgs => ({
+        runArgs,
+        stepRandom32: createMulberry32(runArgs.tickSeed),
         run: createDropState(dropzone),
+        get batch() { return batch; },
     }));
     let stepCount = 0;
     const step = () => {
         for (const {
-            entryArgs: { stepRecorder }, run, stepRandom32,
+            runArgs: { stepRecorder }, run, stepRandom32,
         } of runs) {
             const direction = getRandomWalkerStep({
                 relativeAtWithBounds: run.relativeAtWithBounds,
@@ -47,9 +49,11 @@ export function createBatchRun(args: Readonly<{
         }
         stepCount++;
     };
-    return {
+    const batch = {
         step,
+        args,
+        runs,
         get stepCount() { return stepCount; },
-        get runs() { return runs as Readonly<typeof runs>; },
     };
+    return batch;
 }
