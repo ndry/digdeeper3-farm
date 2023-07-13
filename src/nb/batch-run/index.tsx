@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import { createBatchRun } from "./batch-run";
 import { version as caVersion } from "../../ca/version";
@@ -6,6 +6,7 @@ import { useControls } from "leva";
 import { DropStateView } from "./drop-state-view";
 import { sortedSlice } from "../../utils/sorted-slice";
 import { _never } from "../../utils/_never";
+import { trainOnRuns } from "./train-on-runs";
 
 const scale = 2;
 const targetSbps = 15; // step batches per second
@@ -22,8 +23,11 @@ const dropzone = {
     startFillState: 0,
     stateMap: [1, 0, 2],
 } as const;
-const runLength = 25_000;
+const trainBatchSize = 5000;
+const trainBatchCount = 5;
+const runLength = trainBatchCount * trainBatchSize;
 const tableSize = 30;
+const autoLoop = true;
 
 
 export default function App() {
@@ -31,7 +35,7 @@ export default function App() {
     const [isRunning, setIsRunning] = useState(false);
     const perfRef = useRef<HTMLSpanElement>(null);
 
-    const runs = useMemo(() => [
+    const [runs, setRuns] = useState(() => [
         createBatchRun({
             dropzone,
             runArgss: Array.from({ length: 1000 }, (_, i) => ({
@@ -39,8 +43,16 @@ export default function App() {
                 copilotModel: undefined,
                 stepRecorder: new Uint8Array(runLength),
             })),
-        })
-    ], []);
+        }),
+    ]);
+
+
+    useEffect(() => {
+        if (isRunning) { return; }
+        if (!autoLoop) { return; }
+        if (runs[0].stepCount !== 0) { return; }
+        setIsRunning(true);
+    }, [runs, isRunning, autoLoop]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
@@ -96,6 +108,28 @@ export default function App() {
         function* () { for (const batch of runs) { yield* batch.runs; } }(),
         (a, b) => b.run.maxDepth - a.run.maxDepth,
         0, tableSize);
+
+    useEffect(() => {
+        if (!isRunning) { return; }
+        if (!autoLoop) { return; }
+        if (
+            runs[0].stepCount
+            < (runs[0].runs[0].runArgs.stepRecorder?.length ?? Infinity)
+        ) { return; }
+        setIsRunning(false);
+        (async () => {
+            const bestRunsCount = 10;
+            await trainOnRuns({
+                runs: sortedSlice(
+                    function* () { for (const batch of runs) { yield* batch.runs; } }(),
+                    (a, b) => b.run.maxDepth - a.run.maxDepth,
+                    0, bestRunsCount),
+                batchSize: trainBatchSize,
+                batchCount: trainBatchCount,
+            });
+            // setRuns(...
+        })().catch(console.error);
+    }, [renderTrigger]);
 
     return <div css={[{
         fontSize: "0.7em",
