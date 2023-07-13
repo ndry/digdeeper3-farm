@@ -3,7 +3,7 @@ import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { Dropzone } from "../nb-2023-07-06/run";
 import { createDropState } from "./drop-state";
-import { getNeuralWalkerStep } from "./neural-walker";
+import { getNeuralWalkerSightInto, getNeuralWalkerStep, neuralWalkerSightLength } from "./neural-walker";
 import { getRandomWalkerStep } from "./random-walker";
 import * as tf from "@tensorflow/tfjs";
 
@@ -42,8 +42,17 @@ export function createBatchRun(args: Readonly<{
         copilotModel
             ? () => {
                 const { model } = copilotModel;
+                const inputs = new Float32Array(
+                    runs.length * neuralWalkerSightLength);
+                for (let i = 0; i < runs.length; i++) {
+                    getNeuralWalkerSightInto(
+                        runs[i].run,
+                        inputs,
+                        i * neuralWalkerSightLength);
+                }
                 const inputsTensor = tf.tensor(
-                    runs.map(({ run }) => run.getSight()));
+                    inputs,
+                    [runs.length, neuralWalkerSightLength]);
                 const predictionsTesor = model.predict(
                     inputsTensor,
                     { batchSize: runs.length }) as tf.Tensor;

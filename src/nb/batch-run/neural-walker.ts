@@ -17,18 +17,24 @@ export const neighborhood = [...(function* () {
 })()];
 export const windowLength = 1;
 
-export const getNeuralWalkerSight = ({
+export const neuralWalkerSightLength = neighborhood.length;
+
+export const getNeuralWalkerSightInto = ({
     relativeAtWithBounds,
 }: {
     relativeAtWithBounds: (dt: number, dx: number) => number,
-}) => [
-        ...neighborhood
-            .map(([dx, dt]) => {
-                const st = relativeAtWithBounds(dt, dx);
-                return ((st === 0) || (st === 2)) ? 0 : 1;
-            }),
-        // playerEnergy,
-    ];
+}, output: Record<number, number>, offset: number) => {
+    for (let i = 0; i < neighborhood.length; i++) {
+        const [dx, dt] = neighborhood[i];
+        const st = relativeAtWithBounds(dt, dx);
+        output[offset + i] = ((st === 0) || (st === 2)) ? 0 : 1;
+    }
+    // output[offset + neighborhood.length] = playerEnergy;
+};
+
+export const getNeuralWalkerSight = (env: {
+    relativeAtWithBounds: (dt: number, dx: number) => number,
+}) => getNeuralWalkerSightInto(env, new Array(neuralWalkerSightLength), 0);
 
 export const getNeuralWalkerStep = (env: ReadonlyDeep<{
     stateCount: number;
