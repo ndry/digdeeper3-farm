@@ -44,6 +44,8 @@ export default function App() {
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
+        const runCount =
+            runs.reduce((sum, batch) => sum + batch.runs.length, 0);
         const targetDt = 1000 / targetSbps;
         let lastDt = targetDt;
         let lastSteps = 100;
@@ -77,7 +79,10 @@ export default function App() {
                     perfRef.current.innerText =
                         `sps: ema ${emaSps.toFixed(0)}`
                         + ` / acc ${spsAcc.toFixed(0)}`
-                        + ` / mom     ${lastSps.toFixed(0)}`;
+                        + ` / mom     ${lastSps.toFixed(0)}`
+                        + `\nrsps: ema ${(emaSps * runCount).toExponential(1)}`
+                        + ` / racc ${(spsAcc * runCount).toExponential(1)}`
+                        + ` / rmom     ${(lastSps * runCount).toExponential(1)}`;
                 }
                 setRenderTrigger(t => t + 1);
                 accDt = 0;
@@ -89,7 +94,7 @@ export default function App() {
 
     const bestRuns = sortedSlice(
         function* () { for (const batch of runs) { yield* batch.runs; } }(),
-        (a, b) => a.run.maxDepth - b.run.maxDepth,
+        (a, b) => b.run.maxDepth - a.run.maxDepth,
         0, tableSize);
 
     return <div css={[{
