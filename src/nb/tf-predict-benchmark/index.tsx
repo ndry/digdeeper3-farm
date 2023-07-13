@@ -2,7 +2,7 @@ import usePromise from "react-use-promise";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import * as tf from "@tensorflow/tfjs";
 import "@tensorflow/tfjs-backend-webgl";
-import { createModel, trainModel } from "../nb-2023-07-06/trainModel";
+import { createModel, trainModel } from "../nb-2023-07-06/train-model";
 import { version as caVersion } from "../../ca/version";
 import { useState } from "react";
 import { setWasmPaths } from "@tensorflow/tfjs-backend-wasm";

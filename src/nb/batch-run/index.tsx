@@ -1,11 +1,11 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
-import * as tf from "@tensorflow/tfjs";
 import { createBatchRun } from "./batch-run";
 import { version as caVersion } from "../../ca/version";
 import { useControls } from "leva";
 import { DropStateView } from "./drop-state-view";
 import { sortedSlice } from "../../utils/sorted-slice";
+import { _never } from "../../utils/_never";
 
 const scale = 2;
 const targetSbps = 15; // step batches per second
@@ -24,6 +24,7 @@ const dropzone = {
 } as const;
 const runLength = 25_000;
 const tableSize = 30;
+
 
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);

@@ -1,3 +1,4 @@
+import { _never } from "../../utils/_never";
 import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { Dropzone } from "../nb-2023-07-06/run";
@@ -33,15 +34,21 @@ export function createBatchRun(args: Readonly<{
         get batch() { return batch; },
     }));
     let stepCount = 0;
+    const lastDirections = new Uint8Array(runs.length);
     const step = () => {
-        for (const {
-            runArgs: { stepRecorder }, run, stepRandom32,
-        } of runs) {
-            const direction = getRandomWalkerStep({
-                relativeAtWithBounds: run.relativeAtWithBounds,
-                random32: stepRandom32,
-                stateCount: dropzone.code.stateCount,
-            });
+        for (let i = 0; i < runs.length; i++) {
+            const {
+                runArgs: { stepRecorder, recordedSteps }, run, stepRandom32,
+            } = runs[i];
+            const direction =
+                recordedSteps
+                    ? ((recordedSteps[stepCount] ?? _never()) as 0 | 1 | 2 | 3)
+                    : getRandomWalkerStep({
+                        relativeAtWithBounds: run.relativeAtWithBounds,
+                        random32: stepRandom32,
+                        stateCount: dropzone.code.stateCount,
+                    });
+            lastDirections[i] = direction;
             if (stepRecorder && stepCount < stepRecorder.length) {
                 stepRecorder[stepCount] = direction;
             }
@@ -54,6 +61,7 @@ export function createBatchRun(args: Readonly<{
         args,
         runs,
         get stepCount() { return stepCount; },
+        lastDirections,
     };
     return batch;
 }
