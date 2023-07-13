@@ -147,7 +147,7 @@ export default function App() {
             >));
             const models = [
                 {
-                    id: (+new Date()).toString().slice(-4) + "g"
+                    id: (+new Date()).toString() + "g"
                         + generationNum.toString().padStart(2, "0"),
                     model,
                 },
@@ -247,11 +247,11 @@ export default function App() {
                             const { copilotModel } = batch.args;
                             const { maxDepth, speed } = run;
                             const tickSeedColor =
-                                "#" + stepSeed.toString(16).slice(-6).padStart(6, "0");
+                                "#" + stepSeed.toString(16).slice(-3).padStart(3, "0");
                             const tickSeedStr =
-                                stepSeed.toString().slice(-6);
+                                stepSeed.toString(6).slice(-6);
                             const modelColor = copilotModel
-                                ? "#" + (+copilotModel.id.split("g")[0]).toString(16).slice(-6)
+                                ? "#" + (+copilotModel.id.split("g")[0]).toString(16).slice(-6).padStart(6, "0")
                                 : undefined;
                             return <tr
                                 key={i}
@@ -283,7 +283,7 @@ export default function App() {
                                 </span></td>
                                 <td><span css={{ color: modelColor }}>
                                     {copilotModel
-                                        ? copilotModel.id
+                                        ? copilotModel.id.slice(-6)
                                         : "-"}
                                 </span></td>
                             </tr>;

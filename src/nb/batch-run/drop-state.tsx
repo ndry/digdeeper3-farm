@@ -1,122 +1,143 @@
 import { parseFullTransitionLookupTable } from "../../ca";
 import { fillSpace } from "../../ca/fill-space";
-import { bind } from "../../utils/bind";
 import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
-import { getNeuralWalkerSight } from "../nb-2023-07-06/neural-walker";
 import { Dropzone, directionVec } from "../nb-2023-07-06/run";
+import { getNeuralWalkerSight } from "./neural-walker";
 
-/**
- * A mutable state of a single agent in a single zone
- */
-export function createDropState(dropzone: ReadonlyDeep<Dropzone>) {
-    const {
-        code,
-        stateMap,
-        spaceSize,
-        depthLeftBehind,
-        seed: spacetimeSeed,
-        startFillState,
-    } = dropzone;
 
-    const { stateCount } = code;
-    const table = parseFullTransitionLookupTable(code);
-    const spacetimeRandom32 = createMulberry32(spacetimeSeed);
-    const iStateMap = [
-        stateMap.indexOf(0),
-        stateMap.indexOf(1),
-        stateMap.indexOf(2),
-    ];
+class _DropState {
+    _spacetime: number[][];
+    _table: number[];
+    _spacetimeRandom32: () => number;
+    _iStateMap: number[];
+    _playerPositionX: number;
+    _playerPositionT: number;
+    _maxDepth: number;
+    _stepCount: number;
+    _depth: number;
+    _speed: number;
 
-    /**
-     * Spacetime is evolved per request
-     * and cells are mutable (energy or walls would become empty)
-     */
-    const spacetime = [
-        Array.from({ length: spaceSize },
-            () => iStateMap[startFillState]),
-        Array.from({ length: spaceSize },
-            () => spacetimeRandom32() % stateCount),
-        Array.from({ length: spaceSize },
-            () => spacetimeRandom32() % stateCount),
-    ];
+    constructor(
+        readonly dropzone: ReadonlyDeep<Dropzone>,
+    ) {
+        this._table = parseFullTransitionLookupTable(dropzone.code);
+        this._spacetimeRandom32 = createMulberry32(dropzone.seed);
+        this._iStateMap = [
+            dropzone.stateMap.indexOf(0),
+            dropzone.stateMap.indexOf(1),
+            dropzone.stateMap.indexOf(2),
+        ];
 
-    const evaluateSpacetime = (t: number) => {
-        while (t >= spacetime.length) {
+        /**
+         * Spacetime is evolved per request
+         * and cells are mutable (energy or walls would become empty)
+         */
+        const spaceSize = dropzone.spaceSize;
+        const startFillState = dropzone.stateMap.indexOf(0);
+        const stateCount = dropzone.stateMap.length;
+        this._spacetime = [
+            Array.from({ length: spaceSize },
+                () => this._iStateMap[startFillState]),
+            Array.from({ length: spaceSize },
+                () => this._spacetimeRandom32() % stateCount),
+            Array.from({ length: spaceSize },
+                () => this._spacetimeRandom32() % stateCount),
+        ];
+
+
+
+        this._playerPositionX = Math.floor(spaceSize / 2);
+        this._playerPositionT = 0;
+        // this._playerEnergy = 3;
+        this._maxDepth = 0;
+        this._stepCount = 0;
+        this._depth = 0;
+        this._speed = 0;
+    }
+
+
+    evaluateSpacetime(t: number) {
+        while (t >= this._spacetime.length) {
+            const stateCount = this.dropzone.code.stateCount;
+            const spacetime = this._spacetime;
+
             const space = new Array(spacetime[0].length);
-            space[0] = spacetimeRandom32() % stateCount;
-            space[space.length - 1] = spacetimeRandom32() % stateCount;
+            space[0] = this._spacetimeRandom32() % stateCount;
+            space[space.length - 1] =
+                this._spacetimeRandom32() % stateCount;
             spacetime.push(space);
             fillSpace(
                 stateCount,
                 spacetime[spacetime.length - 3],
                 spacetime[spacetime.length - 2],
                 spacetime[spacetime.length - 1],
-                table);
+                this._table);
         }
-    };
+    }
 
-    const at = (t: number, x: number) => {
-        evaluateSpacetime(t);
-        const s = spacetime[t][x];
-        if (s === stateCount) { return s; } // visited
-        return stateMap[spacetime[t][x]];
-    };
+    at(t: number, x: number) {
+        this.evaluateSpacetime(t);
 
-    const atWithBounds = (t: number, x: number) => {
+        const s = this._spacetime[t][x];
+        if (s === this.dropzone.code.stateCount) { return s; } // visited
+        return this.dropzone.stateMap[this._spacetime[t][x]];
+    }
+
+    atWithBounds(t: number, x: number) {
+        const stateCount = this.dropzone.code.stateCount;
+        const spaceSize = this.dropzone.spaceSize;
+
         if (t < 0) { return stateCount + 1; }
         if (x < 0 || x >= spaceSize) { return stateCount + 1; }
-        return at(t, x);
-    };
+        return this.at(t, x);
+    }
 
-    const relativeAtWithBounds = (dt: number, dx: number) =>
-        atWithBounds(playerPositionT + dt, playerPositionX + dx);
+    relativeAtWithBounds(dt: number, dx: number) {
+        return this.atWithBounds(
+            this._playerPositionT + dt,
+            this._playerPositionX + dx);
+    }
 
-    let playerPositionX = Math.floor(spaceSize / 2);
-    let playerPositionT = 0;
-    // let playerEnergy = 3;
-    let maxDepth = 0;
-    let stepCount = 0;
-    let depth = 0;
-    let speed = 0;
-
-    const step = (direction: 0 | 1 | 2 | 3) => {
-        playerPositionX += directionVec[direction][0];
-        playerPositionT += directionVec[direction][1];
+    step(direction: 0 | 1 | 2 | 3) {
+        this._playerPositionX += directionVec[direction][0];
+        this._playerPositionT += directionVec[direction][1];
         // const s = at(playerPositionT, playerPositionX);
         // if (s === 2) { playerEnergy++; }
         // if (s === 1) { playerEnergy -= 9; }
         // ensure next slice before altering current
-        evaluateSpacetime(playerPositionT + 3);
+        this.evaluateSpacetime(this._playerPositionT + 3);
 
-        spacetime[playerPositionT][playerPositionX] = stateCount;
-        if (playerPositionT > maxDepth) {
-            maxDepth = playerPositionT;
-            depth = Math.max(0, maxDepth - depthLeftBehind);
-            speed = maxDepth / stepCount;
+
+        const stateCount = this.dropzone.code.stateCount;
+
+        this._spacetime[this._playerPositionT][this._playerPositionX] =
+            stateCount;
+
+        if (this._playerPositionT > this._maxDepth) {
+            this._maxDepth = this._playerPositionT;
+            this._depth = Math.max(
+                0,
+                this._maxDepth - this.dropzone.depthLeftBehind);
+            this._speed = this._maxDepth / this._stepCount;
         }
 
-        stepCount++;
-    };
-    const getSight = bind(getNeuralWalkerSight, undefined, {
-        get playerPositionX() { return playerPositionX; },
-        get playerPositionT() { return playerPositionT; },
-        atWithBounds,
-    });
+        this._stepCount++;
+    }
 
-    return {
-        get dropzone() { return dropzone; },
-        get depth() { return depth; },
-        get maxDepth() { return maxDepth; },
-        get playerPositionX() { return playerPositionX; },
-        get playerPositionT() { return playerPositionT; },
-        get speed() { return speed; },
+    getSight() { return getNeuralWalkerSight(this); }
 
-        getSight,
-        get stepCount() { return stepCount; },
-        at,
-        atWithBounds,
-        relativeAtWithBounds,
-        step,
-    };
+    get depth() { return this._depth; }
+    get maxDepth() { return this._maxDepth; }
+    get playerPositionX() { return this._playerPositionX; }
+    get playerPositionT() { return this._playerPositionT; }
+    get speed() { return this._speed; }
+    get stepCount() { return this._stepCount; }
+}
+
+/**
+ * A mutable state of a single agent in a single zone
+ */
+export function createDropState(dropzone: ReadonlyDeep<Dropzone>) {
+    return new _DropState(dropzone);
 }

@@ -19,17 +19,18 @@ export const windowLength = 1;
 
 export const neuralWalkerSightLength = neighborhood.length;
 
-export const getNeuralWalkerSightInto = ({
-    relativeAtWithBounds,
-}: {
+export const getNeuralWalkerSightInto = <
+    T extends Record<number, number>
+>(env: {
     relativeAtWithBounds: (dt: number, dx: number) => number,
-}, output: Record<number, number>, offset: number) => {
+}, output: T, offset: number) => {
     for (let i = 0; i < neighborhood.length; i++) {
-        const [dx, dt] = neighborhood[i];
-        const st = relativeAtWithBounds(dt, dx);
+        const n = neighborhood[i];
+        const st = env.relativeAtWithBounds(n[1], n[0]);
         output[offset + i] = ((st === 0) || (st === 2)) ? 0 : 1;
     }
     // output[offset + neighborhood.length] = playerEnergy;
+    return output;
 };
 
 export const getNeuralWalkerSight = (env: {
