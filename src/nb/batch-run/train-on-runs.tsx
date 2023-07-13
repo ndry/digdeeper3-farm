@@ -16,10 +16,10 @@ export async function trainOnRuns({
     const bestRun = runs[0];
     const modelExists = !!bestRun.batch.args.copilotModel;
 
-    // await bestRun.batch.args.copilotModel?.model.save("indexeddb://nb-2023-07-06-3");
+    await bestRun.batch.args.copilotModel?.model.save("indexeddb://nb-batch-run-0");
     await tf.setBackend("webgl");
     const model = modelExists
-        ? (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential
+        ? (await tf.loadLayersModel("indexeddb://nb-batch-run-0")) as tf.Sequential
         : createModel({
             stateLength: bestRun.run.getSight().length,
             batchSize,
@@ -64,13 +64,13 @@ export async function trainOnRuns({
             epochs: 1,
             callbacks: {
                 onEpochEnd: (epoch, logs) => {
-                    log({ trainModel: "onEpochEnd", epoch, logs });
+                    log({ trainModel: "onEpochEnd", i, epoch, logs });
                 },
             },
         });
     }
-    await model.save("indexeddb://nb-2023-07-06-3");
-    await tf.setBackend("wasm");
-    const model1 = (await tf.loadLayersModel("indexeddb://nb-2023-07-06-3")) as tf.Sequential;
+    await model.save("indexeddb://nb-batch-run-1");
+    await tf.setBackend("webgl");
+    const model1 = (await tf.loadLayersModel("indexeddb://nb-batch-run-1")) as tf.Sequential;
     return model1;
 }

@@ -1,3 +1,4 @@
+/* eslint-disable max-nested-callbacks */
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import { createBatchRun } from "./batch-run";
@@ -7,8 +8,9 @@ import { DropStateView } from "./drop-state-view";
 import { sortedSlice } from "../../utils/sorted-slice";
 import { _never } from "../../utils/_never";
 import { trainOnRuns } from "./train-on-runs";
+import { ReadonlyDeep } from "../../utils/readonly-deep";
 
-const scale = 2;
+const scale = 1;
 const targetSbps = 15; // step batches per second
 const targetRrps = 2; // react renders per second
 const dropzone = {
@@ -24,21 +26,27 @@ const dropzone = {
     stateMap: [1, 0, 2],
 } as const;
 const trainBatchSize = 5000;
-const trainBatchCount = 5;
+const trainBatchCount = 1;
 const runLength = trainBatchCount * trainBatchSize;
 const tableSize = 30;
 const autoLoop = true;
+const totalRandomWalkers = 500;
+const totalRandomWalkersOnStart = 1000;
+const totalNeuralWalkers = 1000;
 
 
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);
+    const [generationNum, setGenerationNum] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const perfRef = useRef<HTMLSpanElement>(null);
 
     const [runs, setRuns] = useState(() => [
         createBatchRun({
             dropzone,
-            runArgss: Array.from({ length: 1000 }, (_, i) => ({
+            runArgss: Array.from({
+                length: totalRandomWalkersOnStart,
+            }, (_, i) => ({
                 tickSeed: +new Date() + i * 13 * 17,
                 copilotModel: undefined,
                 stepRecorder: new Uint8Array(runLength),
@@ -119,15 +127,55 @@ export default function App() {
         setIsRunning(false);
         (async () => {
             const bestRunsCount = 10;
-            await trainOnRuns({
-                runs: sortedSlice(
-                    function* () { for (const batch of runs) { yield* batch.runs; } }(),
-                    (a, b) => b.run.maxDepth - a.run.maxDepth,
-                    0, bestRunsCount),
+            const bestRuns = sortedSlice(
+                function* () { for (const batch of runs) { yield* batch.runs; } }(),
+                (a, b) => b.run.maxDepth - a.run.maxDepth,
+                0, bestRunsCount);
+            const model = await trainOnRuns({
+                runs: bestRuns,
                 batchSize: trainBatchSize,
                 batchCount: trainBatchCount,
             });
-            // setRuns(...
+            const bestModels = Object.values(bestRuns.reduce((acc, run) => {
+                const m = run.batch.args.copilotModel;
+                if (!m) { return acc; }
+                acc[m.id] = m;
+                return acc;
+            }, {} as Record<
+                string,
+                { id: string, model: ReadonlyDeep<typeof model> }
+            >));
+            const models = [
+                {
+                    id: (+new Date()).toString().slice(-4) + "g"
+                        + generationNum.toString().padStart(2, "0"),
+                    model,
+                },
+                ...bestModels.slice(0, 2),
+            ];
+            setRuns([
+                createBatchRun({
+                    dropzone,
+                    runArgss: Array.from({
+                        length: totalRandomWalkers,
+                    }, (_, i) => ({
+                        tickSeed: +new Date() + i * 13 * 17,
+                        copilotModel: undefined,
+                        stepRecorder: new Uint8Array(runLength),
+                    })),
+                }),
+                ...models.map((m, j) => createBatchRun({
+                    dropzone,
+                    copilotModel: m,
+                    runArgss: Array.from({
+                        length: Math.floor(totalNeuralWalkers / models.length),
+                    }, (_, i) => ({
+                        tickSeed: +new Date() + i * 13 * 17 + j * 143,
+                        stepRecorder: new Uint8Array(runLength),
+                    })),
+                })),
+            ]);
+            setGenerationNum(x => x + 1);
         })().catch(console.error);
     }, [renderTrigger]);
 
@@ -152,6 +200,17 @@ export default function App() {
                     dropState={bestRuns[0].run}
                     scale={scale}
                 />
+
+
+                {bestRuns[1].batch.args.copilotModel?.id ?? "-"}
+                /
+                {bestRuns[1].runArgs.tickSeed}:
+                <br />
+                <DropStateView
+                    css={{ padding: "1px" }}
+                    dropState={bestRuns[1].run}
+                    scale={scale}
+                />
             </div>
             <div>
                 <button onClick={() => setIsRunning(!isRunning)}>
@@ -165,6 +224,8 @@ export default function App() {
                 ({(runs[0].stepCount / runLength * 100).toFixed(2)}%)
                 <br />
                 renderTrigger: {renderTrigger}
+                <br />
+                generation: {generationNum}
                 <table css={[{
                     textAlign: "right",
                     borderSpacing: "0px",
@@ -175,16 +236,23 @@ export default function App() {
                         <tr>
                             <th>...mdp</th>
                             <th>...speed</th>
-                            <th>......tickSeed</th>
+                            <th>.stepSeed</th>
                             <th>..model</th>
                         </tr>
                     </thead>
                     <tbody>
                         {bestRuns.map((entry, i) => {
                             const { runArgs, run, batch } = entry;
-                            const { tickSeed } = runArgs;
+                            const { tickSeed: stepSeed } = runArgs;
                             const { copilotModel } = batch.args;
                             const { maxDepth, speed } = run;
+                            const tickSeedColor =
+                                "#" + stepSeed.toString(16).slice(-6).padStart(6, "0");
+                            const tickSeedStr =
+                                stepSeed.toString().slice(-6);
+                            const modelColor = copilotModel
+                                ? "#" + (+copilotModel.id.split("g")[0]).toString(16).slice(-6)
+                                : undefined;
                             return <tr
                                 key={i}
                                 css={[{
@@ -210,12 +278,14 @@ export default function App() {
                                 // }}
                                 >{maxDepth}</td>
                                 <td>{speed.toExponential(2)}</td>
-                                <td>{tickSeed}</td>
-                                <td>
+                                <td><span css={{ color: tickSeedColor }}>
+                                    {tickSeedStr}
+                                </span></td>
+                                <td><span css={{ color: modelColor }}>
                                     {copilotModel
                                         ? copilotModel.id
                                         : "-"}
-                                </td>
+                                </span></td>
                             </tr>;
                         })}
                     </tbody>

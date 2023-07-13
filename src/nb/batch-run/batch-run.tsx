@@ -3,7 +3,9 @@ import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { Dropzone } from "../nb-2023-07-06/run";
 import { createDropState } from "./drop-state";
+import { getNeuralWalkerStep } from "./neural-walker";
 import { getRandomWalkerStep } from "./random-walker";
+import * as tf from "@tensorflow/tfjs";
 
 
 /**
@@ -14,7 +16,7 @@ export function createBatchRun(args: Readonly<{
     dropzone: ReadonlyDeep<Dropzone>;
     copilotModel?: ReadonlyDeep<{
         id: string,
-        // model: tf.Sequential,
+        model: tf.Sequential,
     }>,
     runArgss: ReadonlyArray<Readonly<{
         tickSeed: number;
@@ -26,7 +28,7 @@ export function createBatchRun(args: Readonly<{
         recordedSteps?: Uint8Array; // Readonly<Uint8Array>
     }>>;
 }>) {
-    const { dropzone, runArgss } = args;
+    const { dropzone, runArgss, copilotModel } = args;
     const runs = runArgss.map(runArgs => ({
         runArgs,
         stepRandom32: createMulberry32(runArgs.tickSeed),
@@ -35,27 +37,62 @@ export function createBatchRun(args: Readonly<{
     }));
     let stepCount = 0;
     const lastDirections = new Uint8Array(runs.length);
-    const step = () => {
-        for (let i = 0; i < runs.length; i++) {
-            const {
-                runArgs: { stepRecorder, recordedSteps }, run, stepRandom32,
-            } = runs[i];
-            const direction =
-                recordedSteps
-                    ? ((recordedSteps[stepCount] ?? _never()) as 0 | 1 | 2 | 3)
-                    : getRandomWalkerStep({
+
+    const step =
+        copilotModel
+            ? () => {
+                const { model } = copilotModel;
+                const inputsTensor = tf.tensor(
+                    runs.map(({ run }) => run.getSight()));
+                const predictionsTesor = model.predict(
+                    inputsTensor,
+                    { batchSize: runs.length }) as tf.Tensor;
+                inputsTensor.dispose();
+                const predictions = predictionsTesor.dataSync();
+                predictionsTesor.dispose();
+                for (let i = 0; i < runs.length; i++) {
+                    const {
+                        runArgs: { stepRecorder }, run, stepRandom32,
+                    } = runs[i];
+
+                    const prediction = predictions.slice(i * 4, (i + 1) * 4);
+                    const direction = getNeuralWalkerStep({
                         relativeAtWithBounds: run.relativeAtWithBounds,
+                        prediction: [...prediction],
                         random32: stepRandom32,
                         stateCount: dropzone.code.stateCount,
                     });
-            lastDirections[i] = direction;
-            if (stepRecorder && stepCount < stepRecorder.length) {
-                stepRecorder[stepCount] = direction;
+
+                    lastDirections[i] = direction;
+                    if (stepRecorder && stepCount < stepRecorder.length) {
+                        stepRecorder[stepCount] = direction;
+                    }
+                    run.step(direction);
+                }
+
+                stepCount++;
             }
-            run.step(direction);
-        }
-        stepCount++;
-    };
+            : () => {
+                for (let i = 0; i < runs.length; i++) {
+                    const {
+                        runArgs: { stepRecorder, recordedSteps }, run, stepRandom32,
+                    } = runs[i];
+                    const direction =
+                        recordedSteps
+                            ? ((recordedSteps[stepCount] ?? _never()) as 0 | 1 | 2 | 3)
+                            : getRandomWalkerStep({
+                                relativeAtWithBounds: run.relativeAtWithBounds,
+                                random32: stepRandom32,
+                                stateCount: dropzone.code.stateCount,
+                            });
+                    lastDirections[i] = direction;
+                    if (stepRecorder && stepCount < stepRecorder.length) {
+                        stepRecorder[stepCount] = direction;
+                    }
+                    run.step(direction);
+                }
+                stepCount++;
+            };
     const batch = {
         step,
         args,
