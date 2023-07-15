@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from "react";
-import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
+import { createFullCanvasImageData32, cssColorToAbgr } from "../../utils/create-image-data32";
 import { jsx } from "@emotion/react";
 import { neighborhood, neighborhoodRadius } from "../nb-2023-07-06/neural-walker";
 import { createDropState } from "./drop-state";
@@ -11,6 +11,7 @@ export const colorMap = [
     "#80ff00", // energy
     "#a00000", // visited
 ] as const;
+export const colorMapAbgr = colorMap.map(cssColorToAbgr);
 export const playerColor = "#ff0000ff";
 
 export function DropStateView({
@@ -29,8 +30,10 @@ export function DropStateView({
         canvas.width = w;
         canvas.height = h;
         const {
-            ctx, put, setPixel,
+            ctx, put, setPixel, data32,
         } = createFullCanvasImageData32(canvas);
+        canvas.width *= scale;
+        canvas.height *= scale;
 
 
         let handle: number;
@@ -41,14 +44,20 @@ export function DropStateView({
             if (lastStepCount === dropState.stepCount) { return; }
             lastStepCount = dropState.stepCount;
 
-            canvas.width = w;
-            canvas.height = h;
             const {
                 depth: d, playerPositionX: px, playerPositionT: pt,
             } = dropState;
             for (let y = 0; y < h; y++) {
                 for (let x = 0; x < w; x++) {
-                    setPixel(x, y, colorMap[dropState.at(y + d, x)]);
+                    /**
+                     * Performance optimization.
+                     * On my machine, in Chrome 114, Windows, this is 
+                     * - 1.5x faster than setPixelAbgr
+                     * - 3x faster than setPixel
+                     * - questionably faster than switch
+                     * - faster than switch with imageData.data per byte access
+                     */
+                    data32[y * w + x] = colorMapAbgr[dropState.at(y + d, x)];
                 }
             }
 
@@ -63,9 +72,6 @@ export function DropStateView({
 
                 setPixel(x, y, playerColor);
             }
-
-            canvas.width *= scale;
-            canvas.height *= scale;
 
             put();
             ctx.imageSmoothingEnabled = false;

@@ -32,7 +32,7 @@ const tableSize = 30;
 const autoLoop = true;
 const totalRandomWalkers = 500;
 const totalRandomWalkersOnStart = 1000;
-const totalNeuralWalkers = 100;
+const totalNeuralWalkers = 1000;
 
 
 export default function App() {
