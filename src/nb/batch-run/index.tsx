@@ -9,6 +9,7 @@ import { sortedSlice } from "../../utils/sorted-slice";
 import { _never } from "../../utils/_never";
 import { trainOnRuns } from "./train-on-runs";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
+import { perf } from "./perf";
 
 const scale = 2;
 const targetSbps = 15; // step batches per second
@@ -94,6 +95,9 @@ export default function App() {
                 emaSps = (emaSps ?? actualSps) * 0.95 + actualSps * 0.05;
 
                 if (accDt > (1000 / targetRrps)) {
+                    perf.log();
+                    perf.reset();
+
                     const spsAcc = accSteps / accDt * 1000;
                     console.log({
                         actualDt, targetDt, stepsCount, actualSps,

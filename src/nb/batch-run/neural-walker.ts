@@ -10,7 +10,7 @@ export const neighborhood = [...(function* () {
     for (let dt = -r; dt <= r; dt++) {
         for (let dx = -r; dx <= r; dx++) {
             if (Math.abs(dt) + Math.abs(dx) <= r) {
-                yield [dt, dx] as [number, number];
+                yield [dx, dt] as [number, number];
             }
         }
     }
@@ -19,35 +19,22 @@ export const windowLength = 1;
 
 export const neuralWalkerSightLength = neighborhood.length;
 
-export const getNeuralWalkerSightInto = <
-    T extends Record<number, number>
->(env: {
-    relativeAtWithBounds: (dt: number, dx: number) => number,
-}, output: T, offset: number) => {
-    for (let i = 0; i < neighborhood.length; i++) {
-        const n = neighborhood[i];
-        const st = env.relativeAtWithBounds(n[1], n[0]);
-        output[offset + i] = ((st === 0) || (st === 2)) ? 0 : 1;
-    }
-    // output[offset + neighborhood.length] = playerEnergy;
-    return output;
-};
-
 export const getNeuralWalkerSight = (env: {
-    relativeAtWithBounds: (dt: number, dx: number) => number,
-}) => getNeuralWalkerSightInto(env, new Array(neuralWalkerSightLength), 0);
+    getNeuralWalkerSightInto: (
+        output: Record<number, number>,
+        offset: number,
+    ) => Record<number, number>,
+}) => env.getNeuralWalkerSightInto(new Array(neuralWalkerSightLength), 0);
 
 export const getNeuralWalkerStep = (env: ReadonlyDeep<{
     stateCount: number;
     random32: () => number;
-    prediction: number[],
     relativeAtWithBounds: (dt: number, dx: number) => number,
-}>) => {
+}>, prediction: number[]) => {
     const {
         stateCount,
         relativeAtWithBounds,
         random32,
-        prediction,
     } = env;
     possibleDirections.length = 0;
     for (let _d = 0; _d < 4; _d++) {

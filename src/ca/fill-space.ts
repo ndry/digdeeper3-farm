@@ -3,10 +3,10 @@ import { getFullCombinedState } from ".";
 
 export function fillSpace(
     stateCount: number,
-    prevPrevSpace: number[],
-    prevSpace: number[],
-    outSpace: number[],
-    fullTransitionLookupTable: number[],
+    prevPrevSpace: Readonly<Record<number, number>>,
+    prevSpace: Readonly<Record<number, number>>,
+    outSpace: Record<number, number> & { length: number },
+    fullTransitionLookupTable: Readonly<Record<number, number>>,
 ) {
     const nr = 1;
     for (let x = nr; x < outSpace.length - nr; x++) {

@@ -3,11 +3,11 @@ import { fillSpace } from "../../ca/fill-space";
 import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { Dropzone, directionVec } from "../nb-2023-07-06/run";
-import { getNeuralWalkerSight } from "./neural-walker";
+import { getNeuralWalkerSight, neighborhoodRadius } from "./neural-walker";
 
 
 class _DropState {
-    _spacetime: number[][];
+    _spacetime: Uint8Array[];
     _table: number[];
     _spacetimeRandom32: () => number;
     _iStateMap: number[];
@@ -37,12 +37,12 @@ class _DropState {
         const startFillState = dropzone.stateMap.indexOf(0);
         const stateCount = dropzone.stateMap.length;
         this._spacetime = [
-            Array.from({ length: spaceSize },
-                () => this._iStateMap[startFillState]),
-            Array.from({ length: spaceSize },
-                () => this._spacetimeRandom32() % stateCount),
-            Array.from({ length: spaceSize },
-                () => this._spacetimeRandom32() % stateCount),
+            new Uint8Array(spaceSize)
+                .fill(startFillState),
+            new Uint8Array(spaceSize)
+                .map(() => this._spacetimeRandom32() % stateCount),
+            new Uint8Array(spaceSize)
+                .map(() => this._spacetimeRandom32() % stateCount),
         ];
 
 
@@ -62,7 +62,7 @@ class _DropState {
             const stateCount = this.dropzone.code.stateCount;
             const spacetime = this._spacetime;
 
-            const space = new Array(spacetime[0].length);
+            const space = new Uint8Array(this.dropzone.spaceSize);
             space[0] = this._spacetimeRandom32() % stateCount;
             space[space.length - 1] =
                 this._spacetimeRandom32() % stateCount;
@@ -81,14 +81,14 @@ class _DropState {
 
         const s = this._spacetime[t][x];
         if (s === this.dropzone.code.stateCount) { return s; } // visited
-        return this.dropzone.stateMap[this._spacetime[t][x]];
+        return this.dropzone.stateMap[s];
     }
 
     atWithBounds(t: number, x: number) {
         const stateCount = this.dropzone.code.stateCount;
         const spaceSize = this.dropzone.spaceSize;
 
-        if (t < 0) { return stateCount + 1; }
+        if (t < this._depth) { return stateCount + 1; }
         if (x < 0 || x >= spaceSize) { return stateCount + 1; }
         return this.at(t, x);
     }
@@ -126,6 +126,70 @@ class _DropState {
     }
 
     getSight() { return getNeuralWalkerSight(this); }
+
+    /** Performance critical, optimized for speed */
+    getNeuralWalkerSightInto<T extends Record<number, number>>(
+        output: T, offset: number,
+    ) {
+        const r = neighborhoodRadius;
+        const {
+            _playerPositionX: px,
+            _playerPositionT: pt,
+            _depth: depth,
+            dropzone: {
+                stateMap,
+                code: {
+                    stateCount,
+                },
+            },
+            _spacetime: spacetime,
+        } = this;
+
+        this.evaluateSpacetime(pt + r);
+
+        let i = offset;
+        let dt = -r;
+
+        // fill for the bounds on t < depth
+        for (; dt < depth - pt; dt++) {
+            const xr = r - Math.abs(dt);
+            for (let dx = -xr; dx <= xr; dx++) {
+                output[i++] = 1;
+            }
+        }
+
+        // fill for the rest of t
+        for (; dt <= r; dt++) {
+            const xr = r - Math.abs(dt);
+            const space = spacetime[pt + dt];
+
+            let x = px - xr;
+
+            // fill for the bounds on x < 0
+            for (; x < 0; x++) {
+                output[i++] = 1;
+            }
+            // fill for x in bounds
+            const x1 = Math.min(space.length - 1, px + xr);
+            for (; x <= x1; x++) {
+                const s = space[x];
+                if (s === stateCount) { // visited
+                    output[i++] = 0;
+                    continue;
+                }
+
+                const st = stateMap[s];
+                output[i++] = ((st === 0) || (st === 2)) ? 0 : 1;
+            }
+            // fill for the bounds on x > space.length - 1
+            for (; x <= px + xr; x++) {
+                output[i++] = 1;
+            }
+        }
+
+        // output[offset + i++] = playerEnergy;
+        return output;
+    }
 
     get depth() { return this._depth; }
     get maxDepth() { return this._maxDepth; }

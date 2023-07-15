@@ -3,7 +3,8 @@ import { createMulberry32 } from "../../utils/mulberry32";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { Dropzone } from "../nb-2023-07-06/run";
 import { createDropState } from "./drop-state";
-import { getNeuralWalkerSightInto, getNeuralWalkerStep, neuralWalkerSightLength } from "./neural-walker";
+import { getNeuralWalkerStep, neuralWalkerSightLength } from "./neural-walker";
+import { perf } from "./perf";
 import { getRandomWalkerStep } from "./random-walker";
 import * as tf from "@tensorflow/tfjs";
 
@@ -45,11 +46,15 @@ export function createBatchRun(args: Readonly<{
     const neuralStep = async () => {
         // assert(copilotModel);
         const { model } = copilotModel as NonNullable<typeof copilotModel>;
+        // perf.start();
         for (let i = 0; i < runs.length; i++) {
-            getNeuralWalkerSightInto(
-                runs[i].run,
+            runs[i].run.getNeuralWalkerSightInto(
                 inputs,
                 i * neuralWalkerSightLength);
+            // getNeuralWalkerSightInto(
+            //     runs[i].run,
+            //     inputs,
+            //     i * neuralWalkerSightLength);
         }
         const inputsTensor = tf.tensor(inputs, inputsShape);
         const predictionsTesor = model.predict(
@@ -57,17 +62,17 @@ export function createBatchRun(args: Readonly<{
             { batchSize: runs.length }) as tf.Tensor;
         inputsTensor.dispose();
         const predictions = await predictionsTesor.data();
+        // perf.start();
         predictionsTesor.dispose();
         for (let i = 0; i < runs.length; i++) {
             const x = runs[i];
 
-            const prediction = predictions.slice(i * 4, (i + 1) * 4);
+            const prediction = predictions.subarray(i * 4, (i + 1) * 4);
             const direction = getNeuralWalkerStep({
                 relativeAtWithBounds: x.run.relativeAtWithBounds.bind(x.run),
-                prediction: [...prediction],
                 random32: x.stepRandom32,
                 stateCount: dropzone.code.stateCount,
-            });
+            }, [...prediction]);
 
             lastDirections[i] = direction;
             if (
@@ -78,6 +83,7 @@ export function createBatchRun(args: Readonly<{
             }
             x.run.step(direction);
         }
+        // perf.stop();
 
         stepCount++;
     };
