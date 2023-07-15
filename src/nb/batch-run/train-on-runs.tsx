@@ -5,13 +5,16 @@ import { createModel } from "../nb-2023-07-06/train-model";
 
 
 export async function trainOnRuns({
-    runs, batchSize, batchCount, log = console.log.bind(console),
+    runs,
+    batchSize,
+    batchCount,
+    log = console.log.bind(console),
 }: {
     /** Runs are expected to be sorted, fittest first */
-    runs: ReturnType<typeof createBatchRun>["runs"][0][];
-    batchSize: number;
-    batchCount: number;
-    log?: (msg: any) => void;
+    runs: ReturnType<typeof createBatchRun>["runs"][0][],
+    batchSize: number,
+    batchCount: number,
+    log?: (msg: any) => void,
 }) {
     const bestRun = runs[0];
     const modelExists = !!bestRun.batch.args.copilotModel;
@@ -31,8 +34,8 @@ export async function trainOnRuns({
         metrics: ["accuracy"],
     });
 
-    for (let i = runs.length - 1; i >= 0; i--) {
-        await model.fitDataset(tf.data.generator(function* () {
+    await model.fitDataset(tf.data.generator(function* () {
+        for (let i = runs.length - 1; i >= 0; i--) {
             const theRun = createBatchRun({
                 dropzone: runs[i].batch.args.dropzone,
                 runArgss: [{
@@ -40,11 +43,11 @@ export async function trainOnRuns({
                     recordedSteps: runs[i].runArgs.stepRecorder,
                 }],
             });
-            for (let i = 0; i < batchCount; i++) {
+            for (let bi = 0; bi < batchCount; bi++) {
                 const perfStart = performance.now();
                 const xs = [];
                 const ys = [];
-                for (let j = 0; j < batchSize; j++) {
+                for (let bj = 0; bj < batchSize; bj++) {
                     xs.push(theRun.runs[0].run.getSight());
                     theRun.step();
                     ys.push(theRun.lastDirections[0]);
@@ -54,21 +57,22 @@ export async function trainOnRuns({
                     trainModel: "tickCount",
                     tickCount: theRun.stepCount,
                     perf: perfEnd - perfStart,
+                    i, bi,
                 });
                 yield {
                     xs: tf.tensor(xs),
                     ys: tf.tensor(ys),
                 };
             }
-        }), {
-            epochs: 1,
-            callbacks: {
-                onEpochEnd: (epoch, logs) => {
-                    log({ trainModel: "onEpochEnd", i, epoch, logs });
-                },
+        }
+    }), {
+        epochs: 1,
+        callbacks: {
+            onEpochEnd: (epoch, logs) => {
+                log({ trainModel: "onEpochEnd", epoch, logs });
             },
-        });
-    }
+        },
+    });
     await model.save("indexeddb://nb-batch-run-1");
     await tf.setBackend("webgl");
     const model1 = (await tf.loadLayersModel("indexeddb://nb-batch-run-1")) as tf.Sequential;

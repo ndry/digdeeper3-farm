@@ -10,7 +10,7 @@ import { _never } from "../../utils/_never";
 import { trainOnRuns } from "./train-on-runs";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 
-const scale = 1;
+const scale = 2;
 const targetSbps = 15; // step batches per second
 const targetRrps = 2; // react renders per second
 const dropzone = {
@@ -67,48 +67,58 @@ export default function App() {
         const runCount =
             runs.reduce((sum, batch) => sum + batch.runs.length, 0);
         const targetDt = 1000 / targetSbps;
-        let lastDt = targetDt;
-        let lastSteps = 100;
+        let stepsCount = 10;
+
         let emaSps = undefined as number | undefined;
         let accDt = 0;
         let accSteps = 0;
+        let lastNow = undefined as number | undefined;
 
-        const handle = setInterval(() => {
-            lastSteps = Math.max(1, lastSteps * ((targetDt * 0.9) / lastDt));
-            const perfStart = performance.now();
-
-            for (let i = 0; i < lastSteps; i++) {
+        const step = () => {
+            for (let i = 0; i < Math.max(1, stepsCount); i++) {
                 for (const run of runs) { run.step(); }
             }
 
-            const perfEnd = performance.now();
-            lastDt = perfEnd - perfStart;
-            accDt += lastDt;
-            accSteps += lastSteps;
+            const now = performance.now();
+            if (lastNow !== undefined) {
+                const actualDt = now - lastNow;
+                accDt += actualDt;
+                accSteps += stepsCount;
+                stepsCount = stepsCount ** (Math.log(targetDt * 0.9) / Math.log(actualDt));
 
+                const actualSps = stepsCount / actualDt * 1000;
+                emaSps = (emaSps ?? actualSps) * 0.95 + actualSps * 0.05;
 
-            if (accDt > (1000 / targetRrps)) {
-                const lastSps = lastSteps / lastDt * 1000;
-                emaSps = (emaSps ?? lastSps) * 0.95 + lastSps * 0.05;
-                const spsAcc = accSteps / accDt * 1000;
-                console.log({
-                    lastDt, lastSteps, lastSps,
-                    emaSps, accDt, accSteps, spsAcc,
-                });
-                if (perfRef.current) {
-                    perfRef.current.innerText =
-                        `sps: ema ${emaSps.toFixed(0)}`
-                        + ` / acc ${spsAcc.toFixed(0)}`
-                        + ` / mom     ${lastSps.toFixed(0)}`
-                        + `\nrsps: ema ${(emaSps * runCount).toExponential(1)}`
-                        + ` / racc ${(spsAcc * runCount).toExponential(1)}`
-                        + ` / rmom     ${(lastSps * runCount).toExponential(1)}`;
+                if (accDt > (1000 / targetRrps)) {
+                    const spsAcc = accSteps / accDt * 1000;
+                    console.log({
+                        actualDt, targetDt, stepsCount, actualSps,
+                        emaSps, accDt, accSteps, spsAcc,
+                    });
+                    if (perfRef.current) {
+                        perfRef.current.innerText =
+                            `sps: ema ${emaSps.toFixed(0)}`
+                            + ` / acc ${spsAcc.toFixed(0)}`
+                            + ` / mom     ${actualSps.toFixed(0)}`
+                            + `\nrsps: ema ${(emaSps * runCount).toExponential(1)}`
+                            + ` / racc ${(spsAcc * runCount).toExponential(1)}`
+                            + ` / rmom     ${(actualSps * runCount).toExponential(1)}`;
+                    }
+                    setRenderTrigger(t => t + 1);
+                    accDt = 0;
+                    accSteps = 0;
                 }
-                setRenderTrigger(t => t + 1);
-                accDt = 0;
-                accSteps = 0;
+
+                handle = setTimeout(step, targetDt * 0.1);
+            } else {
+                handle = setTimeout(step, targetDt);
             }
-        }, targetDt);
+            lastNow = now;
+
+        };
+
+        let handle = undefined as ReturnType<typeof setTimeout> | undefined;
+        step();
         return () => clearInterval(handle);
     }, [runs, isRunning, targetSbps]);
 
