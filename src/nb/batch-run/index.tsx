@@ -41,7 +41,7 @@ export default function App() {
     const [isRunning, setIsRunning] = useState(false);
     const perfRef = useRef<HTMLSpanElement>(null);
 
-    const [runs, setRuns] = useState(() => [
+    const [batchRuns, setBatchRuns] = useState(() => [
         createBatchRun({
             dropzone,
             runArgss: Array.from({
@@ -58,14 +58,14 @@ export default function App() {
     useEffect(() => {
         if (isRunning) { return; }
         if (!autoLoop) { return; }
-        if (runs[0].stepCount !== 0) { return; }
+        if (batchRuns[0].stepCount !== 0) { return; }
         setIsRunning(true);
-    }, [runs, isRunning, autoLoop]);
+    }, [batchRuns, isRunning, autoLoop]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
         const runCount =
-            runs.reduce((sum, batch) => sum + batch.runs.length, 0);
+            batchRuns.reduce((sum, batch) => sum + batch.runs.length, 0);
         const targetDt = 1000 / targetSbps;
         let stepsCount = 10;
 
@@ -74,10 +74,14 @@ export default function App() {
         let accSteps = 0;
         let lastNow = undefined as number | undefined;
 
-        const step = () => {
-            for (let i = 0; i < Math.max(1, stepsCount); i++) {
-                for (const run of runs) { run.step(); }
-            }
+        const step = async () => {
+
+            await Promise.all(batchRuns.map(async batch => {
+                for (let i = 0; i < Math.max(1, stepsCount); i++) {
+                    batch.step();
+                }
+            }));
+
 
             const now = performance.now();
             if (lastNow !== undefined) {
@@ -120,10 +124,10 @@ export default function App() {
         let handle = undefined as ReturnType<typeof setTimeout> | undefined;
         step();
         return () => clearInterval(handle);
-    }, [runs, isRunning, targetSbps]);
+    }, [batchRuns, isRunning, targetSbps]);
 
     const bestRuns = sortedSlice(
-        function* () { for (const batch of runs) { yield* batch.runs; } }(),
+        function* () { for (const batch of batchRuns) { yield* batch.runs; } }(),
         (a, b) => b.run.maxDepth - a.run.maxDepth,
         0, tableSize);
 
@@ -131,14 +135,14 @@ export default function App() {
         if (!isRunning) { return; }
         if (!autoLoop) { return; }
         if (
-            runs[0].stepCount
-            < (runs[0].runs[0].runArgs.stepRecorder?.length ?? Infinity)
+            batchRuns[0].stepCount
+            < (batchRuns[0].runs[0].runArgs.stepRecorder?.length ?? Infinity)
         ) { return; }
         setIsRunning(false);
         (async () => {
             const bestRunsCount = 10;
             const bestRuns = sortedSlice(
-                function* () { for (const batch of runs) { yield* batch.runs; } }(),
+                function* () { for (const batch of batchRuns) { yield* batch.runs; } }(),
                 (a, b) => b.run.maxDepth - a.run.maxDepth,
                 0, bestRunsCount);
             const model = await trainOnRuns({
@@ -163,7 +167,7 @@ export default function App() {
                 },
                 ...bestModels.slice(0, 2),
             ];
-            setRuns([
+            setBatchRuns([
                 createBatchRun({
                     dropzone,
                     runArgss: Array.from({
@@ -229,9 +233,9 @@ export default function App() {
                 <br />
                 <span ref={perfRef}>%sps%</span>
                 <br />
-                stepCount: {runs[0].stepCount} / {runLength}
+                stepCount: {batchRuns[0].stepCount} / {runLength}
                 &nbsp;
-                ({(runs[0].stepCount / runLength * 100).toFixed(2)}%)
+                ({(batchRuns[0].stepCount / runLength * 100).toFixed(2)}%)
                 <br />
                 renderTrigger: {renderTrigger}
                 <br />
@@ -301,7 +305,7 @@ export default function App() {
                     </tbody>
                 </table>
                 run count: {
-                    runs.reduce((sum, batch) => sum + batch.runs.length, 0)
+                    batchRuns.reduce((sum, batch) => sum + batch.runs.length, 0)
                 }
             </div>
         </div>

@@ -42,7 +42,7 @@ export function createBatchRun(args: Readonly<{
     // if (copilotModel) //
     const inputs = new Float32Array(runs.length * neuralWalkerSightLength);
     const inputsShape = [runs.length, neuralWalkerSightLength];
-    const neuralStep = () => {
+    const neuralStep = async () => {
         // assert(copilotModel);
         const { model } = copilotModel as NonNullable<typeof copilotModel>;
         for (let i = 0; i < runs.length; i++) {
@@ -56,7 +56,7 @@ export function createBatchRun(args: Readonly<{
             inputsTensor,
             { batchSize: runs.length }) as tf.Tensor;
         inputsTensor.dispose();
-        const predictions = predictionsTesor.dataSync();
+        const predictions = await predictionsTesor.data();
         predictionsTesor.dispose();
         for (let i = 0; i < runs.length; i++) {
             const x = runs[i];
