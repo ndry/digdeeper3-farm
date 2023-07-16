@@ -58,7 +58,9 @@ export function createBatchRun(args: Readonly<{
             inputsTensor,
             { batchSize: runs.length }) as tf.Tensor;
         inputsTensor.dispose();
+        performance.mark(perfId + "_400");
         const predictions = await predictionsTesor.data();
+        performance.mark(perfId + "_500");
         predictionsTesor.dispose();
         for (let i = 0; i < runs.length; i++) {
             const x = runs[i];
@@ -88,6 +90,10 @@ export function createBatchRun(args: Readonly<{
             perfId + "_100", perfId + "_200");
         performance.measure(perfId + "_100-900",
             perfId + "_100", perfId + "_900");
+        performance.measure(perfId + "_500-900",
+            perfId + "_500", perfId + "_900");
+        performance.measure(perfId + "_100-400",
+            perfId + "_100", perfId + "_400");
 
     };
 

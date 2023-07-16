@@ -71,8 +71,8 @@ const trainBatchCount = 1;
 const runLength = trainBatchCount * trainBatchSize;
 const tableSize = 30;
 const autoLoop = true;
-const neuralWalkerBatchCount = 10;
-const neuralWalkerBatchSize = 400;
+const neuralWalkerBatchCount = 5;
+const neuralWalkerBatchSize = 300;
 const totalRandomWalkers = 500;
 const totalRandomWalkersOnStart = 1000;
 
@@ -141,8 +141,11 @@ export default function App() {
                     console.log(readMeasuresAndClear(
                         ...batchRuns
                             .map((_, i) => i)
+                            .filter(i => i > 0) // skip randoms
                             .flatMap(id => [
-                                `${id}_100-200`,
+                                // `${id}_100-200`,
+                                `${id}_100-400`,
+                                `${id}_500-900`,
                                 `${id}_100-900`,
                             ])));
 
