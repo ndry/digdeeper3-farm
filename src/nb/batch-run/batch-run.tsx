@@ -4,7 +4,6 @@ import { ReadonlyDeep } from "../../utils/readonly-deep";
 import { Dropzone } from "../nb-2023-07-06/run";
 import { createDropState } from "./drop-state";
 import { getNeuralWalkerStep, neuralWalkerSightLength } from "./neural-walker";
-import { perf } from "./perf";
 import { getRandomWalkerStep } from "./random-walker";
 import * as tf from "@tensorflow/tfjs";
 
@@ -43,10 +42,11 @@ export function createBatchRun(args: Readonly<{
     // if (copilotModel) //
     const inputs = new Float32Array(runs.length * neuralWalkerSightLength);
     const inputsShape = [runs.length, neuralWalkerSightLength];
-    const neuralStep = async () => {
+    const neuralStep = async (perfId: any) => {
         // assert(copilotModel);
-        const { model } = copilotModel as NonNullable<typeof copilotModel>;
-        // perf.start();
+        const _copilotModel = copilotModel as NonNullable<typeof copilotModel>;
+        const { model } = _copilotModel;
+        performance.mark(perfId + "_100");
         for (let i = 0; i < runs.length; i++) {
             runs[i].run.getNeuralWalkerSightInto(
                 inputs,
@@ -56,13 +56,13 @@ export function createBatchRun(args: Readonly<{
             //     inputs,
             //     i * neuralWalkerSightLength);
         }
+        performance.mark(perfId + "_200");
         const inputsTensor = tf.tensor(inputs, inputsShape);
         const predictionsTesor = model.predict(
             inputsTensor,
             { batchSize: runs.length }) as tf.Tensor;
         inputsTensor.dispose();
         const predictions = await predictionsTesor.data();
-        // perf.start();
         predictionsTesor.dispose();
         for (let i = 0; i < runs.length; i++) {
             const x = runs[i];
@@ -83,9 +83,16 @@ export function createBatchRun(args: Readonly<{
             }
             x.run.step(direction);
         }
-        // perf.stop();
 
         stepCount++;
+
+        performance.mark(perfId + "_900");
+
+        performance.measure(perfId + "_100-200",
+            perfId + "_100", perfId + "_200");
+        performance.measure(perfId + "_100-900",
+            perfId + "_100", perfId + "_900");
+
     };
 
     const step =
@@ -111,6 +118,7 @@ export function createBatchRun(args: Readonly<{
                     run.step(direction);
                 }
                 stepCount++;
+                // return Promise.resolve();
             };
     const batch = {
         step,

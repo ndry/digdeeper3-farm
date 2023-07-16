@@ -153,9 +153,7 @@ class _DropState {
         // fill for the bounds on t < depth
         for (; dt < depth - pt; dt++) {
             const xr = r - Math.abs(dt);
-            for (let dx = -xr; dx <= xr; dx++) {
-                output[i++] = 1;
-            }
+            for (let dx = -xr; dx <= xr; dx++) { output[i++] = 1; }
         }
 
         // fill for the rest of t
@@ -166,9 +164,7 @@ class _DropState {
             let x = px - xr;
 
             // fill for the bounds on x < 0
-            for (; x < 0; x++) {
-                output[i++] = 1;
-            }
+            for (; x < 0; x++) { output[i++] = 1; }
             // fill for x in bounds
             const x1 = Math.min(space.length - 1, px + xr);
             for (; x <= x1; x++) {
@@ -182,9 +178,7 @@ class _DropState {
                 output[i++] = ((st === 0) || (st === 2)) ? 0 : 1;
             }
             // fill for the bounds on x > space.length - 1
-            for (; x <= px + xr; x++) {
-                output[i++] = 1;
-            }
+            for (; x <= px + xr; x++) { output[i++] = 1; }
         }
 
         // output[offset + i++] = playerEnergy;

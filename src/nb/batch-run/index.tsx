@@ -9,9 +9,50 @@ import { sortedSlice } from "../../utils/sorted-slice";
 import { _never } from "../../utils/_never";
 import { trainOnRuns } from "./train-on-runs";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
-import { perf } from "./perf";
 
-const scale = 2;
+const readMeasuresAndClear = (...names: string[]) => {
+    console.log(...names);
+    const toMyStr = (n: number) => {
+        let m = Math.floor(Math.log10(n));
+        m = Math.floor(m / 3) * 3;
+        const s1 = n.toFixed(2).padStart(6, "\u00B7");
+        if (m === 0) { return s1.padEnd(10, "\u00B7"); }
+        return (s1 + "e" + m).padEnd(10, "\u00B7");
+    };
+
+    const acc = names.reduce((acc, name) => {
+        const measures = performance
+            .getEntriesByName(name, "measure")
+            .reduce((acc, m) => {
+                acc.name = m.name;
+                acc.totalDuraation += m.duration;
+                acc.count++;
+                return acc;
+            }, {
+                name: "",
+                totalDuraation: 0,
+                count: 0,
+            });
+        performance.clearMeasures(name);
+        const averageDuration = measures.totalDuraation / measures.count;
+        acc.avgs[name] = toMyStr(averageDuration);
+        acc.infos[name] = {
+            avg: toMyStr(averageDuration),
+            td: toMyStr(measures.totalDuraation),
+            c: measures.count,
+        };
+        return acc;
+    }, {
+        avgs: {} as Record<string, string>,
+        infos: {} as Record<string, any>,
+    });
+    return {
+        ...acc.avgs,
+        __infos: acc.infos,
+    };
+};
+
+const scale = 1;
 const targetSbps = 15; // step batches per second
 const targetRrps = 2; // react renders per second
 const dropzone = {
@@ -31,9 +72,10 @@ const trainBatchCount = 1;
 const runLength = trainBatchCount * trainBatchSize;
 const tableSize = 30;
 const autoLoop = true;
+const neuralWalkerBatchCount = 3;
+const neuralWalkerBatchSize = 400;
 const totalRandomWalkers = 500;
 const totalRandomWalkersOnStart = 1000;
-const totalNeuralWalkers = 1000;
 
 
 export default function App() {
@@ -79,13 +121,14 @@ export default function App() {
 
             await Promise.all(batchRuns.map(async batch => {
                 for (let i = 0; i < Math.max(1, stepsCount); i++) {
-                    batch.step();
+                    await batch.step(i);
                 }
             }));
 
 
             const now = performance.now();
             if (lastNow !== undefined) {
+
                 const actualDt = now - lastNow;
                 accDt += actualDt;
                 accSteps += stepsCount;
@@ -95,8 +138,14 @@ export default function App() {
                 emaSps = (emaSps ?? actualSps) * 0.95 + actualSps * 0.05;
 
                 if (accDt > (1000 / targetRrps)) {
-                    perf.log();
-                    perf.reset();
+
+                    console.log(readMeasuresAndClear(
+                        ...batchRuns
+                            .map((_, i) => i)
+                            .flatMap(id => [
+                                `${id}_100-200`,
+                                `${id}_100-900`,
+                            ])));
 
                     const spsAcc = accSteps / accDt * 1000;
                     console.log({
@@ -117,17 +166,25 @@ export default function App() {
                     accSteps = 0;
                 }
 
-                handle = setTimeout(step, targetDt * 0.1);
+                if (!cancelled) {
+                    handle = setTimeout(step, targetDt * 0.1);
+                }
             } else {
-                handle = setTimeout(step, targetDt);
+                if (!cancelled) {
+                    handle = setTimeout(step, targetDt);
+                }
             }
             lastNow = now;
 
         };
 
+        let cancelled = false;
         let handle = undefined as ReturnType<typeof setTimeout> | undefined;
         step();
-        return () => clearInterval(handle);
+        return () => {
+            cancelled = true;
+            clearInterval(handle);
+        };
     }, [batchRuns, isRunning, targetSbps]);
 
     const bestRuns = sortedSlice(
@@ -162,14 +219,14 @@ export default function App() {
             }, {} as Record<
                 string,
                 { id: string, model: ReadonlyDeep<typeof model> }
-            >));
+            >)).reverse();
             const models = [
                 {
                     id: (+new Date()).toString() + "g"
                         + generationNum.toString().padStart(2, "0"),
                     model,
                 },
-                ...bestModels.slice(0, 2),
+                ...bestModels,
             ];
             setBatchRuns([
                 createBatchRun({
@@ -182,13 +239,15 @@ export default function App() {
                         stepRecorder: new Uint8Array(runLength),
                     })),
                 }),
-                ...models.map((m, j) => createBatchRun({
+                ...Array.from({
+                    length: neuralWalkerBatchCount,
+                }, (_, i) => createBatchRun({
                     dropzone,
-                    copilotModel: m,
+                    copilotModel: models[i % models.length],
                     runArgss: Array.from({
-                        length: Math.floor(totalNeuralWalkers / models.length),
-                    }, (_, i) => ({
-                        tickSeed: +new Date() + i * 13 * 17 + j * 143,
+                        length: neuralWalkerBatchSize,
+                    }, (_, j) => ({
+                        tickSeed: +new Date() + j * 13 * 17 + i * 143,
                         stepRecorder: new Uint8Array(runLength),
                     })),
                 })),

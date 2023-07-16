@@ -20,10 +20,10 @@ export const windowLength = 1;
 export const neuralWalkerSightLength = neighborhood.length;
 
 export const getNeuralWalkerSight = (env: {
-    getNeuralWalkerSightInto: (
-        output: Record<number, number>,
+    getNeuralWalkerSightInto: <T extends Record<number, number>>(
+        output: T,
         offset: number,
-    ) => Record<number, number>,
+    ) => T,
 }) => env.getNeuralWalkerSightInto(new Array(neuralWalkerSightLength), 0);
 
 export const getNeuralWalkerStep = (env: ReadonlyDeep<{
