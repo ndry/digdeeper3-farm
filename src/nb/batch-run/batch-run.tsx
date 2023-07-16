@@ -51,10 +51,6 @@ export function createBatchRun(args: Readonly<{
             runs[i].run.getNeuralWalkerSightInto(
                 inputs,
                 i * neuralWalkerSightLength);
-            // getNeuralWalkerSightInto(
-            //     runs[i].run,
-            //     inputs,
-            //     i * neuralWalkerSightLength);
         }
         performance.mark(perfId + "_200");
         const inputsTensor = tf.tensor(inputs, inputsShape);

@@ -11,7 +11,6 @@ import { trainOnRuns } from "./train-on-runs";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
 
 const readMeasuresAndClear = (...names: string[]) => {
-    console.log(...names);
     const toMyStr = (n: number) => {
         let m = Math.floor(Math.log10(n));
         m = Math.floor(m / 3) * 3;
@@ -72,7 +71,7 @@ const trainBatchCount = 1;
 const runLength = trainBatchCount * trainBatchSize;
 const tableSize = 30;
 const autoLoop = true;
-const neuralWalkerBatchCount = 3;
+const neuralWalkerBatchCount = 10;
 const neuralWalkerBatchSize = 400;
 const totalRandomWalkers = 500;
 const totalRandomWalkersOnStart = 1000;
@@ -119,8 +118,8 @@ export default function App() {
 
         const step = async () => {
 
-            await Promise.all(batchRuns.map(async batch => {
-                for (let i = 0; i < Math.max(1, stepsCount); i++) {
+            await Promise.all(batchRuns.map(async (batch, i) => {
+                for (let k = 0; k < Math.max(1, stepsCount); k++) {
                     await batch.step(i);
                 }
             }));
