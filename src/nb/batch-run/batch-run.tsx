@@ -13,7 +13,7 @@ import * as tf from "@tensorflow/tfjs";
  * in a same (but not shared) zone
  */
 export function createBatchRun(args: Readonly<{
-    dropzone: ReadonlyDeep<Dropzone>;
+    dropzone: ReadonlyDeep<Dropzone>,
     copilotModel?: ReadonlyDeep<{
         id: string,
         model: tf.Sequential,
@@ -26,9 +26,10 @@ export function createBatchRun(args: Readonly<{
         */
         stepRecorder?: Uint8Array;
         recordedSteps?: Uint8Array; // Readonly<Uint8Array>
-    }>>;
+    }>>,
+    perfId?: string,
 }>) {
-    const { dropzone, runArgss, copilotModel } = args;
+    const { dropzone, runArgss, copilotModel, perfId } = args;
     const runs = runArgss.map(runArgs => ({
         runArgs,
         stepRandom32: createMulberry32(runArgs.tickSeed),
@@ -42,7 +43,7 @@ export function createBatchRun(args: Readonly<{
     // if (copilotModel) //
     const inputs = new Float32Array(runs.length * neuralWalkerSightLength);
     const inputsShape = [runs.length, neuralWalkerSightLength];
-    const neuralStep = async (perfId: any) => {
+    const neuralStep = async () => {
         // assert(copilotModel);
         const _copilotModel = copilotModel as NonNullable<typeof copilotModel>;
         const { model } = _copilotModel;
@@ -97,19 +98,24 @@ export function createBatchRun(args: Readonly<{
 
     };
 
-    const step =
+    const step: () => Promise<void> | void =
         copilotModel
             ? neuralStep
             : () => {
                 for (let i = 0; i < runs.length; i++) {
                     const {
-                        runArgs: { stepRecorder, recordedSteps }, run, stepRandom32,
+                        runArgs: { stepRecorder, recordedSteps },
+                        run,
+                        stepRandom32,
                     } = runs[i];
                     const direction =
                         recordedSteps
-                            ? ((recordedSteps[stepCount] ?? _never()) as 0 | 1 | 2 | 3)
+                            ? ((
+                                recordedSteps[stepCount] ?? _never()
+                            ) as 0 | 1 | 2 | 3)
                             : getRandomWalkerStep({
-                                relativeAtWithBounds: run.relativeAtWithBounds.bind(run),
+                                relativeAtWithBounds:
+                                    run.relativeAtWithBounds.bind(run),
                                 random32: stepRandom32,
                                 stateCount: dropzone.code.stateCount,
                             });

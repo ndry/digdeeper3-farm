@@ -1,6 +1,7 @@
 import * as tf from "@tensorflow/tfjs";
 import { createBatchRun } from "./batch-run";
 import { createModel } from "../nb-2023-07-06/train-model";
+import { ReadonlyDeep } from "../../utils/readonly-deep";
 
 
 
@@ -11,7 +12,7 @@ export async function trainOnRuns({
     log = console.log.bind(console),
 }: {
     /** Runs are expected to be sorted, fittest first */
-    runs: ReturnType<typeof createBatchRun>["runs"][0][],
+    runs: ReadonlyDeep<ReturnType<typeof createBatchRun>["runs"][0][]>,
     batchSize: number,
     batchCount: number,
     log?: (msg: any) => void,

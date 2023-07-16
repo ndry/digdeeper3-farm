@@ -46,4 +46,5 @@ export const retroThemeCss = [{
     & button.short::after {
         content: "]";
     }
+    & tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.08);}
 `];

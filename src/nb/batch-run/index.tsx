@@ -9,6 +9,8 @@ import { sortedSlice } from "../../utils/sorted-slice";
 import { _never } from "../../utils/_never";
 import { trainOnRuns } from "./train-on-runs";
 import { ReadonlyDeep } from "../../utils/readonly-deep";
+import { createBatchRunScheduler } from "./create-batch-run-scheduler";
+import { jsx } from "@emotion/react";
 
 const readMeasuresAndClear = (...names: string[]) => {
     const toMyStr = (n: number) => {
@@ -77,6 +79,24 @@ const totalRandomWalkers = 500;
 const totalRandomWalkersOnStart = 1000;
 
 
+
+export function BatchRunViewHeader({
+    ...props
+}: jsx.JSX.IntrinsicElements["tr"]) {
+    return <tr {...props}><th>stepCount</th><th>runs</th></tr>;
+}
+export function BatchRunViewRow({
+    batchRun,
+    ...props
+}: jsx.JSX.IntrinsicElements["tr"] & {
+    batchRun: ReadonlyDeep<ReturnType<typeof createBatchRun>>,
+}) {
+    return <tr {...props}>
+        <td>{batchRun.stepCount}</td>
+        <td>{batchRun.runs.length}</td>
+    </tr>;
+}
+
 export default function App() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [generationNum, setGenerationNum] = useState(0);
@@ -84,7 +104,7 @@ export default function App() {
     const perfRef = useRef<HTMLSpanElement>(null);
 
     const [batchRuns, setBatchRuns] = useState(() => [
-        createBatchRun({
+        createBatchRunScheduler(createBatchRun({
             dropzone,
             runArgss: Array.from({
                 length: totalRandomWalkersOnStart,
@@ -93,104 +113,86 @@ export default function App() {
                 copilotModel: undefined,
                 stepRecorder: new Uint8Array(runLength),
             })),
-        }),
+        })),
     ]);
 
 
     useEffect(() => {
         if (isRunning) { return; }
         if (!autoLoop) { return; }
-        if (batchRuns[0].stepCount !== 0) { return; }
+        if (batchRuns[0].batchRun.stepCount !== 0) { return; }
         setIsRunning(true);
     }, [batchRuns, isRunning, autoLoop]);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
-        const runCount =
-            batchRuns.reduce((sum, batch) => sum + batch.runs.length, 0);
+
+        Promise.all(batchRuns.map(batch => batch.start()));
+
+        const lastSteps = batchRuns.map(batch => batch.batchRun.stepCount);
+        const runCount = batchRuns.reduce((sum, batch) =>
+            sum + batch.batchRun.runs.length, 0);
         const targetDt = 1000 / targetSbps;
-        let stepsCount = 10;
 
-        let emaSps = undefined as number | undefined;
-        let accDt = 0;
-        let accSteps = 0;
-        let lastNow = undefined as number | undefined;
+        // let emaSps = undefined as number | undefined;
+        // let accDt = 0;
+        // let accSteps = 0;
+        // let lastNow = undefined as number | undefined;
 
-        const step = async () => {
+        const handle = setInterval(async () => {
+            // const now = performance.now();
+            // if (lastNow !== undefined) {
 
-            await Promise.all(batchRuns.map(async (batch, i) => {
-                for (let k = 0; k < Math.max(1, stepsCount); k++) {
-                    await batch.step(i);
-                }
-            }));
+            //     const actualDt = now - lastNow;
+            //     accDt += actualDt;
+            //     accSteps += stepsCount;
+            //     stepsCount = stepsCount ** (Math.log(targetDt * 0.9) / Math.log(actualDt));
 
+            //     const actualSps = stepsCount / actualDt * 1000;
+            //     emaSps = (emaSps ?? actualSps) * 0.95 + actualSps * 0.05;
 
-            const now = performance.now();
-            if (lastNow !== undefined) {
+            //     if (accDt > (1000 / targetRrps)) {
 
-                const actualDt = now - lastNow;
-                accDt += actualDt;
-                accSteps += stepsCount;
-                stepsCount = stepsCount ** (Math.log(targetDt * 0.9) / Math.log(actualDt));
+            //         console.log(readMeasuresAndClear(
+            //             ...batchRuns
+            //                 .map((_, i) => i)
+            //                 .filter(i => i > 0) // skip randoms
+            //                 .flatMap(id => [
+            //                     // `${id}_100-200`,
+            //                     `${id}_100-400`,
+            //                     `${id}_500-900`,
+            //                     `${id}_100-900`,
+            //                 ])));
 
-                const actualSps = stepsCount / actualDt * 1000;
-                emaSps = (emaSps ?? actualSps) * 0.95 + actualSps * 0.05;
-
-                if (accDt > (1000 / targetRrps)) {
-
-                    console.log(readMeasuresAndClear(
-                        ...batchRuns
-                            .map((_, i) => i)
-                            .filter(i => i > 0) // skip randoms
-                            .flatMap(id => [
-                                // `${id}_100-200`,
-                                `${id}_100-400`,
-                                `${id}_500-900`,
-                                `${id}_100-900`,
-                            ])));
-
-                    const spsAcc = accSteps / accDt * 1000;
-                    console.log({
-                        actualDt, targetDt, stepsCount, actualSps,
-                        emaSps, accDt, accSteps, spsAcc,
-                    });
-                    if (perfRef.current) {
-                        perfRef.current.innerText =
-                            `sps: ema ${emaSps.toFixed(0)}`
-                            + ` / acc ${spsAcc.toFixed(0)}`
-                            + ` / mom     ${actualSps.toFixed(0)}`
-                            + `\nrsps: ema ${(emaSps * runCount).toExponential(1)}`
-                            + ` / racc ${(spsAcc * runCount).toExponential(1)}`
-                            + ` / rmom     ${(actualSps * runCount).toExponential(1)}`;
-                    }
-                    setRenderTrigger(t => t + 1);
-                    accDt = 0;
-                    accSteps = 0;
-                }
-
-                if (!cancelled) {
-                    handle = setTimeout(step, targetDt * 0.1);
-                }
-            } else {
-                if (!cancelled) {
-                    handle = setTimeout(step, targetDt);
-                }
-            }
-            lastNow = now;
-
-        };
-
-        let cancelled = false;
-        let handle = undefined as ReturnType<typeof setTimeout> | undefined;
-        step();
+            //         const spsAcc = accSteps / accDt * 1000;
+            //         console.log({
+            //             actualDt, targetDt, stepsCount, actualSps,
+            //             emaSps, accDt, accSteps, spsAcc,
+            //         });
+            //         if (perfRef.current) {
+            //             perfRef.current.innerText =
+            //                 `sps: ema ${emaSps.toFixed(0)}`
+            //                 + ` / acc ${spsAcc.toFixed(0)}`
+            //                 + ` / mom     ${actualSps.toFixed(0)}`
+            //                 + `\nrsps: ema ${(emaSps * runCount).toExponential(1)}`
+            //                 + ` / racc ${(spsAcc * runCount).toExponential(1)}`
+            //                 + ` / rmom     ${(actualSps * runCount).toExponential(1)}`;
+            //         }
+            setRenderTrigger(t => t + 1);
+            //         accDt = 0;
+            //         accSteps = 0;
+            //     }
+            // }
+            // lastNow = now;
+        }, targetDt);
         return () => {
-            cancelled = true;
             clearInterval(handle);
+            Promise.all(batchRuns.map(batch => batch.stop()));
         };
     }, [batchRuns, isRunning, targetSbps]);
 
     const bestRuns = sortedSlice(
-        function* () { for (const batch of batchRuns) { yield* batch.runs; } }(),
+        function* () { for (const batch of batchRuns) { yield* batch.batchRun.runs; } }(),
         (a, b) => b.run.maxDepth - a.run.maxDepth,
         0, tableSize);
 
@@ -198,14 +200,14 @@ export default function App() {
         if (!isRunning) { return; }
         if (!autoLoop) { return; }
         if (
-            batchRuns[0].stepCount
-            < (batchRuns[0].runs[0].runArgs.stepRecorder?.length ?? Infinity)
+            batchRuns[0].batchRun.stepCount
+            < (batchRuns[0].batchRun.runs[0].runArgs.stepRecorder?.length ?? Infinity)
         ) { return; }
         setIsRunning(false);
         (async () => {
             const bestRunsCount = 10;
             const bestRuns = sortedSlice(
-                function* () { for (const batch of batchRuns) { yield* batch.runs; } }(),
+                function* () { for (const batch of batchRuns) { yield* batch.batchRun.runs; } }(),
                 (a, b) => b.run.maxDepth - a.run.maxDepth,
                 0, bestRunsCount);
             const model = await trainOnRuns({
@@ -231,19 +233,9 @@ export default function App() {
                 ...bestModels,
             ];
             setBatchRuns([
-                createBatchRun({
-                    dropzone,
-                    runArgss: Array.from({
-                        length: totalRandomWalkers,
-                    }, (_, i) => ({
-                        tickSeed: +new Date() + i * 13 * 17,
-                        copilotModel: undefined,
-                        stepRecorder: new Uint8Array(runLength),
-                    })),
-                }),
                 ...Array.from({
                     length: neuralWalkerBatchCount,
-                }, (_, i) => createBatchRun({
+                }, (_, i) => createBatchRunScheduler(createBatchRun({
                     dropzone,
                     copilotModel: models[i % models.length],
                     runArgss: Array.from({
@@ -252,6 +244,18 @@ export default function App() {
                         tickSeed: +new Date() + j * 13 * 17 + i * 143,
                         stepRecorder: new Uint8Array(runLength),
                     })),
+                    perfId: "n" + i,
+                }))),
+                createBatchRunScheduler(createBatchRun({
+                    dropzone,
+                    runArgss: Array.from({
+                        length: totalRandomWalkers,
+                    }, (_, i) => ({
+                        tickSeed: +new Date() + i * 13 * 17,
+                        copilotModel: undefined,
+                        stepRecorder: new Uint8Array(runLength),
+                    })),
+                    perfId: "r0",
                 })),
             ]);
             setGenerationNum(x => x + 1);
@@ -296,12 +300,18 @@ export default function App() {
                     {isRunning ? "pause" : "play"}
                 </button>
                 <br />
-                <span ref={perfRef}>%sps%</span>
-                <br />
-                stepCount: {batchRuns[0].stepCount} / {runLength}
-                &nbsp;
-                ({(batchRuns[0].stepCount / runLength * 100).toFixed(2)}%)
-                <br />
+                <table>
+                    <thead>
+                        <BatchRunViewHeader />
+                    </thead>
+                    <tbody>
+                        {batchRuns.map((batchRunSheduler, i) =>
+                            <BatchRunViewRow
+                                key={i}
+                                batchRun={batchRunSheduler.batchRun}
+                            />)}
+                    </tbody>
+                </table>
                 renderTrigger: {renderTrigger}
                 <br />
                 generation: {generationNum}
@@ -309,7 +319,6 @@ export default function App() {
                     textAlign: "right",
                     borderSpacing: "0px",
                 },
-        /*css*/"& tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.07);}",
                 ]}>
                     <thead>
                         <tr>
@@ -370,7 +379,7 @@ export default function App() {
                     </tbody>
                 </table>
                 run count: {
-                    batchRuns.reduce((sum, batch) => sum + batch.runs.length, 0)
+                    batchRuns.reduce((sum, batch) => sum + batch.batchRun.runs.length, 0)
                 }
             </div>
         </div>

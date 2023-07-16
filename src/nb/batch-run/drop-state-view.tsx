@@ -3,6 +3,7 @@ import { createFullCanvasImageData32, cssColorToAbgr } from "../../utils/create-
 import { jsx } from "@emotion/react";
 import { neighborhood, neighborhoodRadius } from "../nb-2023-07-06/neural-walker";
 import { createDropState } from "./drop-state";
+import { ReadonlyDeep } from "ts-toolbelt/out/Object/Readonly";
 
 
 export const colorMap = [
@@ -18,7 +19,7 @@ export function DropStateView({
     scale, dropState, ...props
 }: jsx.JSX.IntrinsicElements["div"] & {
     scale: number;
-    dropState: ReturnType<typeof createDropState>;
+    dropState: ReadonlyDeep<ReturnType<typeof createDropState>>;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     useLayoutEffect(() => {
