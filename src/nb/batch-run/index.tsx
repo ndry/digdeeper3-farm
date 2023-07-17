@@ -54,7 +54,6 @@ const readMeasuresAndClear = (...names: string[]) => {
 };
 
 const scale = 1;
-const targetSbps = 15; // step batches per second
 const targetRrps = 2; // react renders per second
 const dropzone = {
     code: {
@@ -74,7 +73,7 @@ const runLength = trainBatchCount * trainBatchSize;
 const tableSize = 30;
 const autoLoop = true;
 const neuralWalkerBatchCount = 5;
-const neuralWalkerBatchSize = 300;
+const neuralWalkerBatchSize = 1000;
 const totalRandomWalkers = 500;
 const totalRandomWalkersOnStart = 1000;
 
@@ -83,17 +82,40 @@ const totalRandomWalkersOnStart = 1000;
 export function BatchRunViewHeader({
     ...props
 }: jsx.JSX.IntrinsicElements["tr"]) {
-    return <tr {...props}><th>stepCount</th><th>runs</th></tr>;
+    return <tr {...props}>
+        <th>stepCount</th>
+        <th>runs</th>
+        <th>ssps</th>
+        <th>sps</th>
+        <th>rsps</th>
+        <th>p</th>
+        <th>model</th>
+    </tr>;
 }
 export function BatchRunViewRow({
     batchRun,
     ...props
 }: jsx.JSX.IntrinsicElements["tr"] & {
-    batchRun: ReadonlyDeep<ReturnType<typeof createBatchRun>>,
+    batchRun: ReadonlyDeep<ReturnType<typeof createBatchRunScheduler>>,
 }) {
+    const copilotModel = batchRun.batchRun.args.copilotModel;
+    const modelColor = copilotModel
+        ? "#" + (+copilotModel.id.split("g")[0]).toString(16).slice(-6).padStart(6, "0")
+        : undefined;
     return <tr {...props}>
-        <td>{batchRun.stepCount}</td>
-        <td>{batchRun.runs.length}</td>
+        <td>{batchRun.batchRun.stepCount}</td>
+        <td>{batchRun.batchRun.runs.length}</td>
+
+        <td>{batchRun.ssps?.toPrecision(2)}</td>
+        <td>{batchRun.sps?.toPrecision(2)}</td>
+        <td>
+            {((batchRun.sps ?? 0) * batchRun.batchRun.runs.length)
+                .toPrecision(2)}
+        </td>
+        <td>{(batchRun.progress * 100).toFixed(0)}%</td>
+        <td><span css={{ color: modelColor }}>
+            {copilotModel?.id.slice(-6) ?? "-"}
+        </span></td>
     </tr>;
 }
 
@@ -126,70 +148,34 @@ export default function App() {
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
-
         Promise.all(batchRuns.map(batch => batch.start()));
-
-        const lastSteps = batchRuns.map(batch => batch.batchRun.stepCount);
-        const runCount = batchRuns.reduce((sum, batch) =>
-            sum + batch.batchRun.runs.length, 0);
-        const targetDt = 1000 / targetSbps;
-
-        // let emaSps = undefined as number | undefined;
-        // let accDt = 0;
-        // let accSteps = 0;
-        // let lastNow = undefined as number | undefined;
-
-        const handle = setInterval(async () => {
-            // const now = performance.now();
-            // if (lastNow !== undefined) {
-
-            //     const actualDt = now - lastNow;
-            //     accDt += actualDt;
-            //     accSteps += stepsCount;
-            //     stepsCount = stepsCount ** (Math.log(targetDt * 0.9) / Math.log(actualDt));
-
-            //     const actualSps = stepsCount / actualDt * 1000;
-            //     emaSps = (emaSps ?? actualSps) * 0.95 + actualSps * 0.05;
-
-            //     if (accDt > (1000 / targetRrps)) {
-
-            //         console.log(readMeasuresAndClear(
-            //             ...batchRuns
-            //                 .map((_, i) => i)
-            //                 .filter(i => i > 0) // skip randoms
-            //                 .flatMap(id => [
-            //                     // `${id}_100-200`,
-            //                     `${id}_100-400`,
-            //                     `${id}_500-900`,
-            //                     `${id}_100-900`,
-            //                 ])));
-
-            //         const spsAcc = accSteps / accDt * 1000;
-            //         console.log({
-            //             actualDt, targetDt, stepsCount, actualSps,
-            //             emaSps, accDt, accSteps, spsAcc,
-            //         });
-            //         if (perfRef.current) {
-            //             perfRef.current.innerText =
-            //                 `sps: ema ${emaSps.toFixed(0)}`
-            //                 + ` / acc ${spsAcc.toFixed(0)}`
-            //                 + ` / mom     ${actualSps.toFixed(0)}`
-            //                 + `\nrsps: ema ${(emaSps * runCount).toExponential(1)}`
-            //                 + ` / racc ${(spsAcc * runCount).toExponential(1)}`
-            //                 + ` / rmom     ${(actualSps * runCount).toExponential(1)}`;
-            //         }
-            setRenderTrigger(t => t + 1);
-            //         accDt = 0;
-            //         accSteps = 0;
-            //     }
-            // }
-            // lastNow = now;
-        }, targetDt);
         return () => {
-            clearInterval(handle);
             Promise.all(batchRuns.map(batch => batch.stop()));
         };
-    }, [batchRuns, isRunning, targetSbps]);
+    }, [batchRuns, isRunning]);
+    useLayoutEffect(() => {
+        if (!isRunning) { return; }
+        const h = setInterval(async () => {
+            console.log(readMeasuresAndClear(
+                ...batchRuns
+                    .map(x => x.batchRun.args.perfId)
+                    .filter(x => x !== undefined)
+                    .flatMap(id => [
+                        // `${id}_100-200`,
+                        `${id}_100-400`,
+                        `${id}_500-900`,
+                        `${id}_100-900`,
+                    ])));
+        }, 1000);
+        return () => { clearInterval(h); };
+    }, [batchRuns, isRunning]);
+    useLayoutEffect(() => {
+        if (!isRunning) { return; }
+        const h = setInterval(
+            () => setRenderTrigger(t => t + 1),
+            1000 / targetRrps);
+        return () => { clearInterval(h); };
+    }, [isRunning, targetRrps]);
 
     const bestRuns = sortedSlice(
         function* () { for (const batch of batchRuns) { yield* batch.batchRun.runs; } }(),
@@ -308,7 +294,7 @@ export default function App() {
                         {batchRuns.map((batchRunSheduler, i) =>
                             <BatchRunViewRow
                                 key={i}
-                                batchRun={batchRunSheduler.batchRun}
+                                batchRun={batchRunSheduler}
                             />)}
                     </tbody>
                 </table>

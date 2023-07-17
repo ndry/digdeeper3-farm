@@ -9,7 +9,16 @@ export function createBatchRunScheduler(
 ) {
     let isRunning = false;
     let p: Promise<void> | undefined;
+    let sps = undefined as number | undefined;
+    let ssps = undefined as number | undefined;
+
     const mainLoop = async () => {
+        const startTime = performance.now();
+        const startSteps = batchRun.stepCount;
+        let lastTime = performance.now();
+        let lastSteps = 0;
+        sps = undefined;
+
         while (isRunning) {
             const needRecord = batchRun.args.runArgss.some(x =>
                 x.stepRecorder
@@ -26,13 +35,31 @@ export function createBatchRunScheduler(
                 while (performance.now() - now < 1000 / 60) {
                     batchRun.step();
                 }
+
                 await new Promise(resolve => setTimeout(resolve, 0));
             }
+
+            const now = performance.now();
+            ssps =
+                (batchRun.stepCount - startSteps)
+                / (now - startTime) * 1000;
+            sps =
+                (batchRun.stepCount - lastSteps)
+                / (now - lastTime) * 1000;
+            lastTime = now;
+            lastSteps = batchRun.stepCount;
         }
     };
     return {
         get batchRun() { return batchRun; },
         get isRunning() { return isRunning; },
+        get progress() {
+            const m = Math.max(...batchRun.args.runArgss
+                .map(x => x.stepRecorder?.length ?? Infinity));
+            return batchRun.stepCount / m;
+        },
+        get sps() { return sps; },
+        get ssps() { return ssps; },
         start() {
             if (isRunning) { return; }
             isRunning = true;
