@@ -1,5 +1,6 @@
-import { keyifyTable, stateCount } from ".";
 import { buildFullTransitionLookupTable } from "./build-full-transition-lookup-table";
+import { keyifyTable } from "./rule-io";
+import { stateCount } from "./state-count";
 
 
 const symmetryMap = Array.from({ length: stateCount }, () =>

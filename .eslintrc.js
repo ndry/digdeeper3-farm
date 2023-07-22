@@ -22,7 +22,7 @@ module.exports = {
         "semi": ["warn", "always"],
         "max-nested-callbacks": ["warn", 2],
         "max-len": ["warn", 80, {
-            "ignorePattern": "^import\\s.+\\sfrom\\s.+;$",
+            "ignorePattern": "(^im|ex)port\\s.+\\sfrom\\s.+;$",
             "ignoreUrls": true,
         }],
         "comma-dangle": ["warn", "always-multiline"],

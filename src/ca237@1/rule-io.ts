@@ -1,10 +1,11 @@
 import { pipe } from "fp-ts/lib/function";
 import * as D from "io-ts/Decoder";
 import { getDigits, getNumberFromDigits } from "../ca/digits";
+import { stateCount } from "./state-count";
+
 
 const i = "ca237@1" as const;
 export const implementation = i;
-export const stateCount = 3;
 export const ruleSpaceSize =
     BigInt(stateCount) ** (BigInt(stateCount) ** BigInt(4));
 
@@ -31,5 +32,3 @@ export const parseTable = (rule: Rule) => {
 
 export const keyifyTable =
     (table: number[]) => i + "/" + getNumberFromDigits(table, stateCount);
-
-export { getFullCombinedState } from "./get-full-combined-state";
