@@ -4,13 +4,13 @@ import { getDigits, getNumberFromDigits } from "../ca/digits";
 import { stateCount } from "./state-count";
 
 
-const i = "ca237@1" as const;
-export const implementation = i;
+export const implementation = "ca237@1" as const;
 export const ruleSpaceSize =
     BigInt(stateCount) ** (BigInt(stateCount) ** BigInt(4));
 
 
 const r = new RegExp(`^${i}/((0|[1-9][0-9]*)$`);
+const i = implementation;
 const asIdGuard = <T>(fn: (x: T) => boolean) => fn as (x: T) => x is typeof x;
 export const RuleDecoder = pipe(
     D.string,
