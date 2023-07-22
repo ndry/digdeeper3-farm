@@ -7,8 +7,6 @@ const isPromise = <T>(x: T | Promise<T>): x is Promise<T> =>
 export function createBatchRunScheduler(
     batchRun: ReadonlyDeep<ReturnType<typeof createBatchRun>>,
 ) {
-    const s_2 = "5";
-
     let isRunning = false;
     let p: Promise<void> | undefined;
     let sps = undefined as number | undefined;
