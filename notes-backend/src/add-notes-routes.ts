@@ -1,6 +1,11 @@
 import { RouterType, json } from "itty-router";
 import { Env } from "./env";
 
+const parseHashTags = (msg: string) =>
+    msg.match(/#[a-z0-9_]+/gi)?.map(t => t.slice(1)) ?? [];
+
+export const noteFromMsg = (msg: string) => ({ tags: parseHashTags(msg), msg });
+
 
 export const addNotesRoutes = (router: RouterType) => router
     .get("/notes/", async (req, env: Env) => {
@@ -12,8 +17,19 @@ export const addNotesRoutes = (router: RouterType) => router
         return json(values);
     })
     .post("/notes/", async (req, env: Env) => {
-        await env.NOTES_KV.put(
-            new Date().toISOString() + Math.random(),
-            await req.text());
-        return json({ ok: true });
+        const isJson = req.headers.get("content-type")?.includes("application/json");
+        const note =
+            isJson
+                ? await (async () => {
+                    const j = await req.json();
+                    if (typeof j === "string") { return noteFromMsg(j); }
+                    if (typeof j === "object") { return j; }
+                    throw new Error(`invalid payload: ${j}`);
+                })()
+                : noteFromMsg(await req.text());
+
+        const key = new Date().toISOString() + Math.random();
+
+        await env.NOTES_KV.put(key, JSON.stringify(note));
+        return json({ ok: true, key, note });
     });
