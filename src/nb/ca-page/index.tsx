@@ -6,6 +6,19 @@ import { CommentAdd } from "@emotion-icons/boxicons-regular/CommentAdd";
 
 
 export default function App() {
+
+    if (!location.hash) {
+        return <div css={
+            [{
+                fontSize: "0.7em",
+                display: "flex",
+                flexDirection: "column",
+                padding: "1em",
+                textAlign: "center",
+            }, retroThemeCss]
+        }><h1> 404 </h1> </div>;
+    }
+
     const [coments, setComents] = useState<string[][] | undefined>();
     const [inputValue, setInputValue] = useState("");
 
