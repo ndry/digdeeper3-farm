@@ -1,0 +1,11 @@
+{
+  "name": "notes-backend",
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20230724.0",
+    "itty-router": "^4.0.14",
+    "wrangler": "^3.3.0"
+  }
+}

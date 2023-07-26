@@ -1,0 +1,17 @@
+name = "notes"
+main = "./src/index.ts"
+
+compatibility_date = "2023-07-26"
+
+account_id = "..."
+route = "..."
+workers_dev = false
+
+node_compat = true
+
+kv_namespaces = [
+    { binding = "NOTES_KV", id = "..." }
+]
+
+[placement]
+mode = "smart"
