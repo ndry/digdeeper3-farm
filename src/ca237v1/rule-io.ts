@@ -2,6 +2,7 @@ import { pipe } from "fp-ts/lib/function";
 import * as D from "io-ts/Decoder";
 import { getDigits, getNumberFromDigits } from "../ca/digits";
 import { stateCount } from "./state-count";
+import { guard } from "../utils/keyify-utils";
 
 
 export const implementation = "ca237v1" as const;
@@ -32,3 +33,5 @@ export const parseTable = (rule: Rule) => {
 
 export const keyifyTable =
     (table: number[]) => i + "_" + getNumberFromDigits(table, stateCount);
+
+export const isRule = guard(RuleDecoder);
