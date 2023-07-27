@@ -1,5 +1,7 @@
 import { version } from "./version";
 import { getDigits } from "./digits";
+import { Rule as RuleCa237v1, parseTable as parseTableCa237v1 } from "../ca237v1/rule-io";
+import { getNumberFromDigits } from "./digits";
 
 export { version };
 
@@ -47,3 +49,8 @@ export const parseFullTransitionLookupTable = ({
     return table;
 };
 
+export const fromCa237v1 = (rule: RuleCa237v1) => ({
+    v: version,
+    stateCount: 3,
+    rule: getNumberFromDigits(parseTableCa237v1(rule), 3).toString(),
+});

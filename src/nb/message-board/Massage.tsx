@@ -5,7 +5,7 @@ import { CommentAdd } from "@emotion-icons/boxicons-regular/CommentAdd";
 import { ChangeEvent, useState } from "react";
 
 export function Massage(
-    { massages,
+    { massages, 
     }: {
         massages: {
             msg: [],

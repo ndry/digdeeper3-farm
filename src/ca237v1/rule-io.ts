@@ -10,7 +10,7 @@ export const ruleSpaceSize =
 
 
 const i = implementation;
-const r = new RegExp(`^${i}_((0|[1-9][0-9]*)$`);
+const r = new RegExp(`^${i}_(0|[1-9][0-9]*)$`);
 const asIdGuard = <T>(fn: (x: T) => boolean) => fn as (x: T) => x is typeof x;
 export const RuleDecoder = pipe(
     D.string,
