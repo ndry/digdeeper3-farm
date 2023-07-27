@@ -1,6 +1,6 @@
 import { RouterType, json } from "itty-router";
 import { Env } from "./env";
-import { noteFromMsg } from "core/note23727v1";
+import { noteFromText } from "core/note23727v1";
 
 
 export const addNotesRoutes = (router: RouterType) => router
@@ -16,7 +16,7 @@ export const addNotesRoutes = (router: RouterType) => router
         const note =
             req.headers.get("content-type")?.includes("application/json")
                 ? await req.json()
-                : noteFromMsg(await req.text());
+                : noteFromText(await req.text());
 
         const key = new Date().toISOString() + Math.random();
 
