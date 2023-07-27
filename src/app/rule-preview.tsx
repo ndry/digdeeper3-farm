@@ -5,6 +5,8 @@ import { createFullCanvasImageData32 } from "../utils/create-image-data32";
 import { Code, keyifyCode } from "../ca/code";
 import { createSpacetimeEvaluator } from "../ca/create-spacetime-evaluator";
 import { createMulberry32 } from "../utils/mulberry32";
+import { Rule as RuleCa237v1, implementation } from "../ca237v1/rule-io";
+import { fromCa237v1 } from "../ca";
 
 export const colorMap = [
     "#ff0000",
@@ -19,9 +21,12 @@ export function RulePreview({
 }: {
     showDetails?: boolean,
     additionalDetails?: string,
-    code: Code,
+    code: Code | RuleCa237v1,
 } & jsx.JSX.IntrinsicElements["div"]) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+
+    const legacyCode = typeof code === "string" ? fromCa237v1(code) : code;
+    const ruleCa237v1 = implementation + "_" + legacyCode.rule;
 
     useEffect(() => {
         const canvasEl = canvasRef.current;
@@ -39,7 +44,7 @@ export function RulePreview({
         } = createFullCanvasImageData32(canvasEl);
 
         const theCa = createSpacetimeEvaluator({
-            code,
+            code: legacyCode,
             spaceSize: h,
             timeSize: w,
             startFillState: 0,
@@ -70,11 +75,20 @@ export function RulePreview({
             display: "flex",
             flexDirection: "row",
         }, cssProp]}
-        title={keyifyCode(code)}
+        title={ruleCa237v1}
         {...props}
     >
         <div css={{ position: "relative" }}>
             <canvas ref={canvasRef} css={[{ imageRendering: "pixelated" }]} />
         </div>
+
+        <button
+            onClick={async () => {
+                await fetch("https://hq.x-pl.art/notes/", {
+                    method: "POST",
+                    body: "#like" + " #" + ruleCa237v1,
+                });
+            }}
+        >#like</button>
     </div>;
 }
