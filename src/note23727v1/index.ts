@@ -12,3 +12,7 @@ export const noteFromText = (text: string): Note23727v1 => ({
     tags: parseHashTags(text),
     text,
 });
+
+export const isNote23727v1 = 
+    (x: unknown): x is Note23727v1 =>
+        (typeof x === "object") && !!x && ("s" in x) && x.s === "note237v1";

@@ -30,6 +30,7 @@
 		import { RecoilRoot } from "recoil";
 
 		import { App } from "./src/app/app";
+		import NotesApp from "./src/app/notes";
 		import * as pages from "./src/app/pages";
 
 		console.log("appVersion", appVersion);
@@ -42,7 +43,9 @@
 		})() ?? App;
 
 		const Component =
-			(import.meta.env.DEV && await (async () => {
+			((() => {
+				if (location.pathname === "/notes/") { return NotesApp; }
+			})()) || (import.meta.env.DEV && await (async () => {
 				const path = location.pathname;
 				if (path === "/") { return; }
 				const name = path.substring(path.lastIndexOf("/") + 1);
