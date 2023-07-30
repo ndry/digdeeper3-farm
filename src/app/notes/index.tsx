@@ -44,9 +44,9 @@ const NoteView = ({
 export default function Component() {
     const filterSearchParam = new URL(location.href).searchParams.get("filter");
     const [notes, notesError, notesStatus] = usePromise(async () => {
-        const user =
-            await App.getApp("xplart-hq-flsoc")
-                .logIn(Credentials.anonymous());
+        const app = App.getApp("xplart-hq-flsoc");
+        const user = app.currentUser
+            ?? await app.logIn(Credentials.anonymous());
         const notesCollection = user.mongoClient("mongodb-atlas")
             .db("hq")
             .collection<{ _id: unknown } & unknown>("notes");
