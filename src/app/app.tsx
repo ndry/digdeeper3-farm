@@ -52,6 +52,7 @@ export function App() {
                 pointerEvents: "all",
             }}>
                 {[
+                    "./notes/",
                     ...Object.keys(pages).map(k => `./?${k}`),
                 ].map((path, i) => <a
                     css={{

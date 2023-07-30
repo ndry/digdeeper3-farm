@@ -4,6 +4,8 @@ import usePromise from "react-use-promise";
 import { isRule } from "../../ca237v1/rule-io";
 import { isNote23727v1 } from "../../note23727v1";
 import jsonBeautify from "json-beautify";
+import { App, Credentials } from "realm-web";
+
 
 
 const NoteView = ({
@@ -39,24 +41,22 @@ const NoteView = ({
     </div >;
 };
 
-export default function App() {
+export default function Component() {
     const filterSearchParam = new URL(location.href).searchParams.get("filter");
     const [notes, notesError, notesStatus] = usePromise(async () => {
-        const response = await fetch(`${import.meta.env.VITE_CORS_PROXY}?https://westeurope.azure.data.mongodb-api.com/app/xplart-hq-flsoc/endpoint/data/v1/action/find`, {
-            method: "POST",
-            headers: { apiKey: import.meta.env.VITE_NOTES_PUBLIC_READ_KEY },
-            body: JSON.stringify({
-                dataSource: "mongodb-atlas",
-                database: "hq",
-                collection: "notes",
-                limit: 9999,
-                sort: { "_id": -1 },
-                filter: JSON.parse(filterSearchParam ?? "\"\""),
-            }),
+        const user =
+            await App.getApp("xplart-hq-flsoc")
+                .logIn(Credentials.anonymous());
+        const notesCollection = user.mongoClient("mongodb-atlas")
+            .db("hq")
+            .collection<{ _id: unknown } & unknown>("notes");
+        const filter = filterSearchParam
+            ? JSON.parse(filterSearchParam)
+            : undefined;
+        const notes = await notesCollection.find(filter, {
+            limit: 9999,
+            sort: { _id: -1 },
         });
-        if (!response.ok) { throw new Error(response.statusText); }
-        const result = await response.json();
-        const notes = result.documents as unknown[];
         return notes;
     }, [filterSearchParam]);
 
@@ -69,6 +69,7 @@ export default function App() {
             padding: "1em",
         }, retroThemeCss]
     }>
+        {filterSearchParam && <div><a href="./">global feed</a></div>}
         {notesStatus === "pending" && <div>Loading...</div>}
         {notesError && <div>Error: {notesError.stack}</div>}
         {notesStatus === "resolved"

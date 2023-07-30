@@ -10,8 +10,12 @@ workers_dev = false
 node_compat = true
 
 kv_namespaces = [
-    { binding = "NOTES_KV", id = "..." }
 ]
+
+[vars]
+# The necessary secrets are:
+# - REALM_APPTOKEN = "..."
+# Run `echo <VALUE> | wrangler secret put <NAME>` for each of these
 
 [placement]
 mode = "smart"

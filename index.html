@@ -53,6 +53,7 @@
 				const module = (await import(/* @vite-ignore */"./src" + path));
 				return module[name]
 					?? module.App
+					?? module.Component
 					?? module.default;
 			})()) || SearchComponent;
 

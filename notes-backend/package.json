@@ -5,8 +5,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20230724.0",
+    "core": "file:../src/",
     "itty-router": "^4.0.14",
-    "wrangler": "^3.3.0",
-    "core": "file:../src/"
+    "realm-web": "^2.0.0",
+    "wrangler": "^3.3.0"
   }
 }

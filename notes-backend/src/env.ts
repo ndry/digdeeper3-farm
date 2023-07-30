@@ -1,4 +1,4 @@
 
 export interface Env {
-    NOTES_KV: KVNamespace;
+    REALM_APPTOKEN: string;
 }
