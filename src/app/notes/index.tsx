@@ -7,11 +7,12 @@ import jsonBeautify from "json-beautify";
 import { App, Credentials } from "realm-web";
 
 
-
 const NoteView = ({
     note,
+    isPreview,
 }: {
     note: unknown,
+    isPreview?: boolean,
 }) => {
     if (!isNote23727v1(note)) {
         return <div><pre>{jsonBeautify(note, null as any, 2, 80)}</pre></div>;
@@ -35,7 +36,9 @@ const NoteView = ({
                 >{tag}</a>;
             })
         }
-        {rule && <RulePreview code={rule} />}
+        {isPreview
+            && rule
+            && <RulePreview code={rule} css={{ width: "50vmin" }} />}
         <span>text:  {note.text} </span>
         <div><pre>{jsonBeautify(note, null as any, 2, 80)}</pre></div>
     </div >;
@@ -61,6 +64,24 @@ export default function Component() {
     }, [filterSearchParam]);
 
 
+    const params = new URL(location.href).searchParams;
+    const filter = params.get("filter");
+    const filterTags = filter
+        ? JSON.parse(filter).tags
+        : undefined;
+    let rule = undefined;
+    let isPreviewRule = false;
+
+    if (Array.isArray(filterTags)) {
+        filterTags.map(
+            (tag) => {
+                isPreviewRule = tag.find(isRule);
+                console.log(tag);
+                rule = tag;
+            });
+    } else { isPreviewRule = isRule(filterTags); rule = filterTags; }
+
+
     return <div css={
         [{
             fontSize: "0.7em",
@@ -73,6 +94,10 @@ export default function Component() {
         {notesStatus === "pending" && <div>Loading...</div>}
         {notesError && <div>Error: {notesError.stack}</div>}
         {notesStatus === "resolved"
-            && notes.map((note, i) => <NoteView key={i} note={note} />)}
+            && isPreviewRule
+            && <RulePreview code={rule} css={{ width: "90vmin" }} />}
+        {notesStatus === "resolved"
+            && notes.map((note, i) =>
+                <NoteView key={i} note={note} isPreview={!isPreviewRule} />)}
     </div >;
 }
