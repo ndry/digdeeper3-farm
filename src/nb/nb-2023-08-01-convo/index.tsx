@@ -2,11 +2,13 @@ import { useState } from "react";
 import { generateRandomRule } from "../../ca237v1/generate-random-rule";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import { RulePreview } from "./rule-preview";
+import { RulePreview1 } from "./rule-preview-1";
 
 
 export default function Component() {
-    const spaceSize = 145;
-    const timeSize = 1200;
+    const window = 128;
+    const spaceSize = 150 * window;
+    const timeSize = 1000 * window;
     const scale = 1;
     const seed = 4242;
 
@@ -22,27 +24,38 @@ export default function Component() {
         generateRandomRule(),
     ]);
 
-    return <div css={
-        [{
-            fontSize: "0.7em",
-            display: "flex",
-            flexDirection: "column",
-            padding: "1em",
-        }, retroThemeCss]
-    }>
+    return <div css={[{
+        fontSize: "0.7em",
+        display: "flex",
+        flexDirection: "column",
+        padding: "1em",
+    }, retroThemeCss]}>
         Hello World from {import.meta.url}
-        {[...rules0, ...rules1].map((rule, i) => <RulePreview
-            key={i}
-            rule={rule}
-            spaceSize={spaceSize}
-            timeSize={timeSize}
-            scale={scale}
-            seed={seed}
-        />)}
         <button onClick={() => setRules1([
             generateRandomRule(),
             generateRandomRule(),
             generateRandomRule(),
         ])}>Randomize</button>
-    </div>;
+        <div css={{ display: "flex", flexDirection: "row" }}>
+            {[...rules0, ...rules1].map((rule, i) => <div key={i}>
+                {/* <RulePreview
+                rule={rule}
+                spaceSize={spaceSize}
+                timeSize={timeSize}
+                scale={scale}
+                seed={seed}
+            /> */}
+                <RulePreview1
+                    rule={rule}
+                    spaceSize={spaceSize}
+                    timeSize={timeSize}
+                    scale={scale}
+                    seed={seed}
+                    window={window}
+                    css={{ padding: "0.1em" }}
+                />
+            </div>)
+            }
+        </div>
+    </div >;
 }
