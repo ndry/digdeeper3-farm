@@ -36,6 +36,8 @@ export function RulePreview1({
         const canvasEl = canvasRef.current;
         if (!canvasEl) { return; }
 
+        const perfStart = performance.now();
+
         const c = window;
         const w = spaceSize / c;
         const h = timeSize / c;
@@ -108,6 +110,12 @@ export function RulePreview1({
             canvasEl,
             0, 0, canvasEl.width / scale, canvasEl.height / scale,
             0, 0, canvasEl.width, canvasEl.height);
+
+        const perfEnd = performance.now();
+        console.log({
+            perfMs: perfEnd - perfStart,
+            rule,
+        });
 
     }, [canvasRef.current, rule, spaceSize, timeSize, seed, scale]);
 
