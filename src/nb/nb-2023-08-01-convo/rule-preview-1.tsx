@@ -117,11 +117,20 @@ export function RulePreview1({
         }, cssProp]}
         {...props}
     >
+        <a
+            href={`./notes/?${(() => {
+                const p = new URLSearchParams();
+                p.set("filter", JSON.stringify({ tags: rule }));
+                return p;
+            })()}`}
+            target="_blank"
+        >link</a>
         <canvas
             ref={canvasRef}
             title={rule}
             css={[{
                 imageRendering: "pixelated",
+                display: "block",
             }]}
         />
     </div>;
