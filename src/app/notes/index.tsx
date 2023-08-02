@@ -95,7 +95,12 @@ export default function Component() {
         {notesError && <div>Error: {notesError.stack}</div>}
         {notesStatus === "resolved"
             && isPreviewRule
-            && <RulePreview code={rule} css={{ width: "90vmin" }} />}
+            && <RulePreview
+                code={rule}
+                css={{ width: "90vmin" }}
+                width={800}
+                height={800}
+            />}
         {notesStatus === "resolved"
             && notes.map((note, i) =>
                 <NoteView key={i} note={note} isPreview={!isPreviewRule} />)}

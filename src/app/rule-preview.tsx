@@ -17,11 +17,15 @@ export const colorMap = [
 export function RulePreview({
     code,
     css: cssProp,
+    width,
+    height,
     ...props
 }: {
     showDetails?: boolean,
     additionalDetails?: string,
     code: Code | RuleCa237v1,
+    width?: number,
+    height?: number,
 } & jsx.JSX.IntrinsicElements["div"]) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -32,8 +36,8 @@ export function RulePreview({
         const canvasEl = canvasRef.current;
         if (!canvasEl) { return; }
 
-        const w = 200;
-        const h = 61;
+        const w = width ? width : 200;
+        const h = height ? height : 61;
         const pixelsPerCell = 1;
         canvasEl.width = w * pixelsPerCell;
         canvasEl.height = h * pixelsPerCell;
