@@ -10,13 +10,13 @@ import { RulePreview2 } from "./rule-preview-2";
 export default function Component() {
     const window = 16;
     const spaceSize = 150 * window;
-    const timeSize = 1000 * window;
+    const timeSize = 280 * window;
     const scale = 1;
     const seed = 4242;
 
     // const gen = generateRandomRule();
     const gen = generateRandomSymmetricalRule;
-    const genCount = 5;
+    const genCount = 29;
 
     const rules0 = [
         // "ca237v1_210856206670641170713055541262311557598",
@@ -37,8 +37,17 @@ export default function Component() {
         <button onClick={() => setRules1(Array.from({ length: genCount }, gen))}>
             Randomize
         </button>
-        <div css={{ display: "flex", flexDirection: "row" }}>
-            {[...rules0, ...rules1].map((rule, i) => <Fragment key={i}>
+        <div css={{
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+        }}>
+            {[...rules0, ...rules1].map((rule, i) => <div
+                key={i}
+                css={{
+                    border: "1px solid lime",
+                }}
+            >
                 {/* <RulePreview
                 rule={rule}
                 spaceSize={spaceSize}
@@ -64,7 +73,7 @@ export default function Component() {
                     window={window}
                     css={{ padding: "0.1em" }}
         /> */}
-            </Fragment>)}
+            </div>)}
         </div>
     </div >;
 }

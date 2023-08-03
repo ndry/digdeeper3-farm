@@ -133,6 +133,13 @@ export function RulePreview1({
             })()}`}
             target="_blank"
         >link</a>
+        <br />
+        <button onClick={async () => {
+            await fetch("https://hq.x-pl.art/notes/", {
+                method: "POST",
+                body: `#like #${rule} #nb_2023_08_01_convo_v0a_rule_preview_1`,
+            });
+        }}>#like</button>
         <canvas
             ref={canvasRef}
             title={rule}
