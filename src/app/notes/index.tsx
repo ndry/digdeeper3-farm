@@ -63,7 +63,9 @@ export default function Component() {
         return notes;
     }, [filterSearchParam]);
 
-
+    const canvasWidth = window.innerWidth
+        ? Math.round(window.innerWidth * 0.40)
+        : 200;
     const params = new URL(location.href).searchParams;
     const filter = params.get("filter");
     const filterTags = filter
@@ -97,9 +99,9 @@ export default function Component() {
             && isPreviewRule
             && <RulePreview
                 code={rule}
-                css={{ width: "90vmin" }}
-                width={800}
-                height={800}
+                // css={{ }}
+                width={canvasWidth}
+                height={canvasWidth * 0.80}
             />}
         {notesStatus === "resolved"
             && notes.map((note, i) =>
