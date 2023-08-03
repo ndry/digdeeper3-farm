@@ -99,7 +99,6 @@ export default function Component() {
             && isPreviewRule
             && <RulePreview
                 code={rule}
-                // css={{ }}
                 width={canvasWidth}
                 height={canvasWidth * 0.80}
             />}
