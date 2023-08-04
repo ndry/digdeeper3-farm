@@ -49,9 +49,20 @@ export function xx({
         { length: window },
         () => new Uint8Array(spaceSize));
 
-    const stats1 = Array.from(
+    const statsC = 5;
+    const stats2 = Array.from(
         { length: h },
-        () => new Uint32Array(3 ** 1));
+        () => new Uint32Array(3 ** statsC));
+    const colors = Array.from(
+        { length: 3 ** statsC },
+        (_, i) => {
+            const digits = i.toString(3).padStart(statsC, "0").split("").map(Number);
+            return [
+                Math.floor(digits.filter((d) => d === 0).length / digits.length * 255),
+                Math.floor(digits.filter((d) => d === 1).length / digits.length * 255),
+                Math.floor(digits.filter((d) => d === 2).length / digits.length * 255),
+            ];
+        });
 
     for (let py = 0; py < h; py++) {
         if (py === 0) {
@@ -86,9 +97,17 @@ export function xx({
             const sc = [0, 0, 0];
             for (let t = 0; t < spacetime.length; t++) {
                 for (let dx = 0; dx < c; dx++) {
-                    const s = spacetime[t][px * c + dx];
+                    const x = px * c + dx;
+                    const s = spacetime[t][x];
                     sc[s]++;
-                    stats1[py][s]++;
+
+                    if (x >= statsC) {
+                        let ps = 0;
+                        for (let i = 0; i < statsC; i++) {
+                            ps += spacetime[t][x - i - 1] * 3 ** i;
+                        }
+                        stats2[py][ps * 3 + s]++;
+                    }
                 }
             }
 
@@ -98,12 +117,15 @@ export function xx({
             imageData.data[i + 3] = 255;
         }
 
-        for (let s = 0; s < 3; s++) {
-            const si = (Math.floor(stats1[py][s] / c / spaceSize * w) + py * w) * 4;
-            statsImageData.data[si + 0] = 0;
-            statsImageData.data[si + 1] = 0;
-            statsImageData.data[si + 2] = 0;
-            statsImageData.data[si + s] = 255;
+        for (let s = 0; s < 3 ** statsC; s++) {
+            const absX = stats2[py][s] / spaceSize;
+            const x1 = Math.log(stats2[py][s]) / Math.log(10);
+            const x = Math.floor(x1 * w / c * 1);
+            if (x >= w) { continue; }
+            const si = (x + py * w) * 4;
+            statsImageData.data[si + 0] = colors[s][0];
+            statsImageData.data[si + 1] = colors[s][1];
+            statsImageData.data[si + 2] = colors[s][2];
             statsImageData.data[si + 3] = 255;
         }
     }
@@ -179,7 +201,7 @@ export function RulePreview1({
         <button onClick={async () => {
             await fetch("https://hq.x-pl.art/notes/", {
                 method: "POST",
-                body: `#like #${rule} #nb_2023_08_01_convo_v0a_rule_preview_1`,
+                body: `#like #${rule} #nb_2023_08_01_convo1_v0a_rule_preview_1`,
             });
         }}>#like</button>
         <div
