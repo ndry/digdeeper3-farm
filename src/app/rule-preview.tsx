@@ -82,10 +82,10 @@ export function RulePreview({
         title={ruleCa237v1}
         {...props}
     >
-        <div css={{ position: "relative", width: "100%" }}>
+        <div css={{ position: "relative" }}>
             <canvas
                 ref={canvasRef}
-                css={[{ imageRendering: "pixelated", width: "100%" }]} />
+                css={[{ imageRendering: "pixelated" }]} />
         </div>
 
         <button
