@@ -3,7 +3,23 @@ import { generateRandomRule } from "../../ca237v1/generate-random-rule";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import { generateRandomSymmetricalRule } from "../../ca237v1/generate-random-symmetrical-rule";
 import { RulePreview1 } from "./rule-preview-1";
+import { keyifyTable } from "../../ca237v1/rule-io";
+import { buildFullTransitionLookupTable } from "../../ca237v1/build-full-transition-lookup-table";
+import { stateCount } from "../../ca237v1/state-count";
 
+
+
+export const generateRandomRule1 = (random01 = Math.random) => {
+    const table = Array.from(
+        { length: 3 ** 3 },
+        () => Math.floor(random01() * stateCount));
+
+    return keyifyTable(
+        buildFullTransitionLookupTable(
+            stateCount,
+            (_, n1, c, n2, pc) => table[
+                (n1 * stateCount + c) * stateCount + n2]));
+};
 
 export default function Component() {
     const window = 8;
