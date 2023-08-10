@@ -55,7 +55,7 @@ type Ca238v1 = ReturnType<typeof ca238v1FromSeed>;
 const parseCa238v1Table = (substance: Ca238v1) => {
     const tablePacked = Number(substance.split("_")[1]);
     const tableStr = tablePacked.toString(3).padStart(27, "0");
-    return [...tableStr].map(Number);
+    return [...tableStr].map(Number).reverse();
 };
 
 const getProblem = (seed: string) => {
@@ -64,6 +64,11 @@ const getProblem = (seed: string) => {
         reagents: [
             ca238v1FromSeed(HmacSHA256("reagents.0", seed)),
             ca238v1FromSeed(HmacSHA256("reagents.1", seed)),
+            ca238v1FromSeed(HmacSHA256("reagents.2", seed)),
+            ca238v1FromSeed(HmacSHA256("reagents.3", seed)),
+            ca238v1FromSeed(HmacSHA256("reagents.4", seed)),
+            ca238v1FromSeed(HmacSHA256("reagents.5", seed)),
+            `ca238v1_${6354276578736}` as const, // wt1815
         ],
         products: [
             ca238v1FromSeed(HmacSHA256("products.0", seed)),
@@ -112,7 +117,7 @@ export function SubstanceView({
     const table = parseCa238v1Table(substance);
     const tablePic = table.map(d => asciiStateMap[d]);
     return <span>
-        {substance}
+        {substance.padStart(21, ".")}
         &nbsp;/&nbsp;
         {tablePic}
     </span>;
@@ -146,22 +151,10 @@ export default function Component() {
         rule: Ca238v1,
     }>>([]);
 
-    const [state, setState] = useState(() => ({
-        energy: 100,
-        warehouse: {
-            17: 1,
-        } as Record<number, number>,
-        market: {
-            45: 1,
-            120: 100,
-            144: -1,
-            17: -100,
-        } as Record<number, number>,
-        reactor: {
-            load: undefined as number | undefined,
-            rule: undefined as number | undefined,
-        },
-    }));
+    const [currentReaction, setCurrentReaction] = useState<{
+        reagent?: Ca238v1,
+        rule?: Ca238v1,
+    }>({});
 
     return (
         <div css={[{
@@ -179,154 +172,66 @@ export default function Component() {
             Reaagents:
             {problem.reagents.map((reagent, i) => <div key={i}>
                 <SubstanceView substance={reagent} />
-                &nbsp;<button>as reagent</button>
-                &nbsp;<button>as rule</button>
+                &nbsp;<button onClick={() => {
+                    setCurrentReaction(update(currentReaction, {
+                        reagent: { $set: reagent },
+                    }));
+                }}>as reagent</button>
+                &nbsp;<button onClick={() => {
+                    setCurrentReaction(update(currentReaction, {
+                        rule: { $set: reagent },
+                    }));
+                }}>as rule</button>
             </div>)}
-            ====
-            <pre css={{ fontSize: "1.4em" }}>
-                {jsonBeautify(state, null as any, 2, 80)}
-            </pre>
-            <div>Energy: {state.energy}</div>
-            <div>
-                Warehouse:
-                {Object.entries(state.warehouse).map(([ware, count], i) => <div key={i}>
-                    "{ware}" x {count}
-                    <button
-                        onClick={() => {
-                            const currentLoad = state.reactor.load;
-                            if (currentLoad === undefined) {
-                                setState(update(state, {
-                                    warehouse: {
-                                        [ware]: {
-                                            $set: (state.warehouse[ware] ?? 0) - 1,
-                                        },
-                                    },
-                                    reactor: { load: { $set: Number(ware) } },
+            <pre>{jsonBeautify(currentReaction, null as any, 2, 80)}</pre>
+            {currentReaction.reagent !== undefined
+                && currentReaction.rule !== undefined
+                && Array.from({ length: 100 }).map((_, i) => {
+                    const rule = currentReaction.rule!;
+                    const reagent = currentReaction.reagent!;
+
+                    const table = parseCa238v1Table(rule);
+                    let space = parseCa238v1Table(reagent);
+                    for (let t = 0; t < i; t++) {
+                        space = space.map((_, x) => {
+                            const left = space.at(x - 1)!;
+                            const right = space.at(x - space.length + 1)!;
+                            const center = space[x];
+                            const cs = left * 9 + center * 3 + right;
+                            return table[cs];
+                        });
+                    }
+                    const substance =
+                        `ca238v1_${parseInt(space.reverse().join(""), 3)}` as const;
+                    return <div key={i}>
+                        <SubstanceView substance={substance} />
+                        &nbsp;<button onClick={() => {
+                            setCurrentReaction(update(currentReaction, {
+                                reagent: { $set: substance },
+                            }));
+                        }}>as reagent</button>
+                        &nbsp;<button onClick={() => {
+                            setCurrentReaction(update(currentReaction, {
+                                rule: { $set: substance },
+                            }));
+                        }}>as rule</button>
+                        &nbsp;<button
+                            onClick={() => {
+                                registerSubstanceSource(substance, {
+                                    reagent,
+                                    rule,
+                                    t: i,
+                                });
+                                setReactionLog(update(reactionLog, {
+                                    $push: [{ reagent, rule }],
                                 }));
-                            } else {
-                                setState(update(state, {
-                                    warehouse: {
-                                        [ware]: {
-                                            $set: (state.warehouse[ware] ?? 0) - 1,
-                                        },
-                                        [currentLoad]: {
-                                            $set: (state.warehouse[currentLoad] ?? 0) + 1,
-                                        },
-                                    },
-                                    reactor: { load: { $set: Number(ware) } },
-                                }));
-                            }
-                        }}
-                        disabled={count < 1}
-                    >Put in reactor as load</button>
-                    <button
-                        onClick={() => {
-                            const currentRule = state.reactor.rule;
-                            if (currentRule === undefined) {
-                                setState(update(state, {
-                                    warehouse: {
-                                        [ware]: {
-                                            $set: (state.warehouse[ware] ?? 0) - 1,
-                                        },
-                                    },
-                                    reactor: { rule: { $set: Number(ware) } },
-                                }));
-                            } else {
-                                setState(update(state, {
-                                    warehouse: {
-                                        [ware]: {
-                                            $set: (state.warehouse[ware] ?? 0) - 1,
-                                        },
-                                        [currentRule]: {
-                                            $set: (state.warehouse[currentRule] ?? 0) + 1,
-                                        },
-                                    },
-                                    reactor: { rule: { $set: Number(ware) } },
-                                }));
-                            }
-                        }}
-                        disabled={count < 1}
-                    >Put in reactor as rule</button>
-                </div>)}
-            </div>
-            <div>
-                Market:
-                {Object.entries(state.market).map(([ware, price], i) => <div key={i}>
-                    <button
-                        onClick={() => setState(update(state, {
-                            energy: { $set: state.energy - price },
-                            warehouse: { [ware]: { $set: (state.warehouse[ware] ?? 0) + 1 * Math.sign(price) } },
-                        }))}
-                        disabled={
-                            price > 0
-                                ? state.energy < price
-                                : (state.warehouse[ware] ?? 0) < 1
-                        }
-                    >
-                        {price > 0 ? "+Buy" : "-Sell"}
-                        &nbsp;"{ware}" for {price}
-                    </button>
-                </div>)}
-            </div>
-            <div>
-                Reactor:
-                load: {state.reactor.load?.toString(2).padStart(8, "0")}
-                &nbsp;({state.reactor.load})
-                {state.reactor.load !== undefined
-                    && <button
-                        onClick={() => setState(update(state, {
-                            warehouse: {
-                                [state.reactor.load!]: {
-                                    $set: (state.warehouse[state.reactor.load!] ?? 0) + 1,
-                                },
-                            },
-                            reactor: { load: { $set: undefined } },
-                        }))}
-                    >Unload</button>}
-                / rule: {state.reactor.rule?.toString(2).padStart(8, "0")}
-                &nbsp;({state.reactor.rule})
-                {state.reactor.rule !== undefined
-                    && <button
-                        onClick={() => setState(update(state, {
-                            warehouse: {
-                                [state.reactor.rule!]: {
-                                    $set: (state.warehouse[state.reactor.rule!] ?? 0) + 1,
-                                },
-                            },
-                            reactor: { rule: { $set: undefined } },
-                        }))}
-                    >Unload</button>}
-                {state.reactor.load !== undefined
-                    && state.reactor.rule !== undefined
-                    && Array.from({ length: 100 }).map((_, i) => {
-                        const { load, rule } = state.reactor;
-                        const table = rule!.toString(2).padStart(8, "0").split("").map(Number).reverse();
-                        let prevSpace = [] as number[];
-                        let space = load.toString(2).padStart(8, "0").split("").map(Number);
-                        for (let t = 0; t < i; t++) {
-                            prevSpace = space;
-                            space = space.map((_, i) => {
-                                const left = prevSpace.at(i - 1)!;
-                                const right = prevSpace.at(i - 8 + 1)!;
-                                const center = prevSpace[i];
-                                const ruleIndex = left * 4 + center * 2 + right;
-                                return table[ruleIndex];
-                            });
-                        }
-                        const spaceNum = parseInt(space.join(""), 2);
-                        return <div key={i}>
-                            <button
-                                onClick={() => setState(update(state, {
-                                    energy: { $set: state.energy - i },
-                                    reactor: { load: { $set: spaceNum } },
-                                }))}
-                                disabled={state.energy < i}
-                            >
-                                React to {space} ({spaceNum}) for {i} energy
-                            </button>
-                        </div>;
-                    })}
-            </div>
+                            }}
+                        >
+                            log
+                        </button>
+                    </div>;
+                })}
+            <pre>{jsonBeautify(reactionLog, null as any, 2, 80)}</pre>
         </div >
     );
 }
