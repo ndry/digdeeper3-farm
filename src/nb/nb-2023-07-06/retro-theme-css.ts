@@ -47,4 +47,5 @@ export const retroThemeCss = [{
         content: "]";
     }
     & tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.08);}
+    & pre { font-family: 'Noto Sans Mono', monospace; }
 `];
