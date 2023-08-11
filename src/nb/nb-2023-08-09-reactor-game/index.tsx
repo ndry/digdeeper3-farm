@@ -119,24 +119,43 @@ export const scoreSubstance = (substance: Ca238v1, target: Ca238v1) => {
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const unlerp = (a: number, b: number, t: number) => (t - a) / (b - a);
 
+
 export function SubstanceView({
     substance, comparisonTarget,
 }: jsx.JSX.IntrinsicElements["div"] & {
     substance: Ca238v1,
     comparisonTarget?: Ca238v1,
 }) {
-    const table = parseCa238v1Table(substance);
-    const tablePic = table.map(d => asciiStateMap[d]);
     const score = comparisonTarget !== undefined
         ? scoreSubstance(substance, comparisonTarget)
         : undefined;
     return <span>
         {substance.padStart(21, ".")}
         &nbsp;/&nbsp;
-        {tablePic}
+        {parseCa238v1Table(substance).map(d => asciiStateMap[d])}
         &nbsp;/&nbsp;
         {(score ?? "").toString().padStart(5, ".")}
         &nbsp;
+        {Array.from({ length: 10 }).map((_, i) => <span key={i}>{
+            ((score ?? 0) / 2700) > (i / 10)
+                ? "@"
+                : "."
+        }</span>)}
+    </span>;
+}
+
+export function CompactSubstanceView({
+    substance, comparisonTarget,
+}: jsx.JSX.IntrinsicElements["div"] & {
+    substance: Ca238v1,
+    comparisonTarget?: Ca238v1,
+}) {
+    const score = comparisonTarget !== undefined
+        ? scoreSubstance(substance, comparisonTarget)
+        : undefined;
+    return <span>
+        {parseCa238v1Table(substance).map(d => asciiStateMap[d])}
+        &nbsp;/&nbsp;
         {Array.from({ length: 10 }).map((_, i) => <span key={i}>{
             ((score ?? 0) / 2700) > (i / 10)
                 ? "@"
@@ -168,15 +187,20 @@ export default function Component() {
         },
         [problemSeed]);
 
-    const [reactionLog, setReactionLog] = useState<Array<{
-        reagent: Ca238v1,
-        rule: Ca238v1,
-    }>>([]);
+    const [reactionLog, setReactionLog] = useState([{
+        reagent: problem.reagents[0],
+        rule: problem.reagents[1],
+    }]);
 
-    const [currentReaction, setCurrentReaction] = useState<{
-        reagent?: Ca238v1,
-        rule?: Ca238v1,
-    }>({});
+    const setCurrentReaction = (reaction: typeof reactionLog[0]) => {
+        setReactionLog(update(reactionLog, {
+            $push: [reaction],
+        }));
+    };
+    const currentReaction = reactionLog[reactionLog.length - 1] ?? {
+        reagent: problem.reagents[0],
+        rule: problem.reagents[1],
+    };
 
     return (
         <div css={[{
@@ -211,58 +235,78 @@ export default function Component() {
                     }));
                 }}>as rule</button>
             </div>)}
-            <pre>{jsonBeautify(currentReaction, null as any, 2, 80)}</pre>
-            {currentReaction.reagent !== undefined
-                && currentReaction.rule !== undefined
-                && Array.from({ length: 100 }).map((_, i) => {
-                    const rule = currentReaction.rule!;
-                    const reagent = currentReaction.reagent!;
+            <div css={{
+                display: "flex",
+                flexFlow: "row wrap",
+                paddingTop: "1em",
+            }}>
+                {reactionLog.map((reaction, i) => <div
+                    key={i}
+                    css={{
+                        fontSize: "0.6em",
+                    }}
+                >
+                    <button onClick={() => {
+                        setReactionLog(update(reactionLog, {
+                            $splice: [[i, 1]],
+                        }));
+                    }}>x</button>
+                    <br />
+                    &#x2B4D; <SubstanceView
+                        substance={reaction.rule}
+                        comparisonTarget={problem.products[0]}
+                    />
+                    <br />
+                    &#x269B; <SubstanceView
+                        substance={reaction.reagent}
+                        comparisonTarget={problem.products[0]}
+                    />
+                    {Array.from({ length: 30 }).map((_, i) => {
+                        const { reagent, rule } = reaction;
 
-                    const table = parseCa238v1Table(rule);
-                    let space = parseCa238v1Table(reagent);
-                    for (let t = 0; t < i; t++) {
-                        space = space.map((_, x) => {
-                            const left = space.at(x - 1)!;
-                            const right = space.at(x - space.length + 1)!;
-                            const center = space[x];
-                            const cs = left * 9 + center * 3 + right;
-                            return table[cs];
-                        });
-                    }
-                    const substance =
-                        `ca238v1_${parseInt(space.reverse().join(""), 3)}` as const;
-                    return <div key={i}>
-                        <SubstanceView
-                            substance={substance}
-                            comparisonTarget={problem.products[0]}
-                        />
-                        &nbsp;<button onClick={() => {
-                            setCurrentReaction(update(currentReaction, {
-                                reagent: { $set: substance },
-                            }));
-                        }}>as reagent</button>
-                        &nbsp;<button onClick={() => {
-                            setCurrentReaction(update(currentReaction, {
-                                rule: { $set: substance },
-                            }));
-                        }}>as rule</button>
-                        &nbsp;<button
-                            onClick={() => {
-                                registerSubstanceSource(substance, {
-                                    reagent,
-                                    rule,
-                                    t: i,
-                                });
-                                setReactionLog(update(reactionLog, {
-                                    $push: [{ reagent, rule }],
+                        const table = parseCa238v1Table(rule);
+                        let space = parseCa238v1Table(reagent);
+                        for (let t = 0; t < i; t++) {
+                            space = space.map((_, x) => {
+                                const left = space.at(x - 1)!;
+                                const right = space.at(x - space.length + 1)!;
+                                const center = space[x];
+                                const cs = left * 9 + center * 3 + right;
+                                return table[cs];
+                            });
+                        }
+                        const substance =
+                            `ca238v1_${parseInt(space.reverse().join(""), 3)}` as const;
+                        return <div key={i}>
+                            <CompactSubstanceView
+                                substance={substance}
+                                comparisonTarget={problem.products[0]}
+                            />
+                            &nbsp;<button onClick={() => {
+                                setCurrentReaction(update(reaction, {
+                                    reagent: { $set: substance },
                                 }));
-                            }}
-                        >
-                            log
-                        </button>
-                    </div>;
-                })}
-            <pre>{jsonBeautify(reactionLog, null as any, 2, 80)}</pre>
+                            }}>&#x269B;</button>
+                            &nbsp;<button onClick={() => {
+                                setCurrentReaction(update(reaction, {
+                                    rule: { $set: substance },
+                                }));
+                            }}>&#x2B4D;</button>
+                            &nbsp;<button
+                                onClick={() => {
+                                    registerSubstanceSource(substance, {
+                                        reagent,
+                                        rule,
+                                        t: i,
+                                    });
+                                    setReactionLog(update(reactionLog, {
+                                        $push: [{ reagent, rule }],
+                                    }));
+                                }}
+                            >&#x2710;</button>
+                        </div>;
+                    })}</div>)}
+            </div>
         </div >
     );
 }
