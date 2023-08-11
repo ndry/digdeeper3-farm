@@ -36,6 +36,7 @@ import update from "immutability-helper";
 import { HmacSHA256, enc } from "crypto-js";
 import type * as CryptoJS from "crypto-js";
 import { jsx } from "@emotion/react";
+import { JsonButton } from "./json-button";
 
 
 type WordArray = CryptoJS.lib.WordArray;
@@ -90,36 +91,57 @@ const registerSubstanceSource = (
     source: Problem | ReactionSource,
 ) => (substanceSources[substance] ??= []).push(source);
 
-export function JsonButton({
-    name,
-    obj,
-}: {
-    name?: string,
-    obj: unknown,
-} & jsx.JSX.IntrinsicElements["button"]) {
-    const text = jsonBeautify(obj, null as any, 2, 80);
-    return <button
-        title={"Click to copy to clipboard: " + text}
-        onClick={() => {
-            console.log(obj);
-            navigator.clipboard.writeText(text);
-        }}
-    >{name ? name + " " : ""}JSON</button>;
-}
-
 const asciiStateMap = [".", "~", "x"] as const;
 
+export const scoreSubstance = (substance: Ca238v1, target: Ca238v1) => {
+    const t1 = parseCa238v1Table(substance);
+    const t2 = parseCa238v1Table(target);
+    let s1 = 0;
+    for (let i = t1.length - 1; i >= 0; i--) {
+        if (t1[i] === t2[i]) {
+            s1++;
+            t1.splice(i, 1);
+            t2.splice(i, 1);
+        }
+    }
+    const s2 =
+        Math.min(
+            t1.filter(d => d === 0).length, t2.filter(d => d === 0).length)
+        + Math.min(
+            t1.filter(d => d === 1).length, t2.filter(d => d === 1).length)
+        + Math.min(
+            t1.filter(d => d === 2).length, t2.filter(d => d === 2).length);
+
+    const score = s1 * 100 + s2;
+    return score;
+};
+
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+const unlerp = (a: number, b: number, t: number) => (t - a) / (b - a);
+
 export function SubstanceView({
-    substance,
+    substance, comparisonTarget,
 }: jsx.JSX.IntrinsicElements["div"] & {
     substance: Ca238v1,
+    comparisonTarget?: Ca238v1,
 }) {
     const table = parseCa238v1Table(substance);
     const tablePic = table.map(d => asciiStateMap[d]);
+    const score = comparisonTarget !== undefined
+        ? scoreSubstance(substance, comparisonTarget)
+        : undefined;
     return <span>
         {substance.padStart(21, ".")}
         &nbsp;/&nbsp;
         {tablePic}
+        &nbsp;/&nbsp;
+        {(score ?? "").toString().padStart(5, ".")}
+        &nbsp;
+        {Array.from({ length: 10 }).map((_, i) => <span key={i}>{
+            ((score ?? 0) / 2700) > (i / 10)
+                ? "@"
+                : "."
+        }</span>)}
     </span>;
 }
 
@@ -167,11 +189,17 @@ export default function Component() {
             <JsonButton name="Problem" obj={problem} />
             Target products:
             {problem.products.map((product, i) => <div key={i}>
-                <SubstanceView substance={product} />
+                <SubstanceView
+                    substance={product}
+                    comparisonTarget={problem.products[0]}
+                />
             </div>)}
             Reaagents:
             {problem.reagents.map((reagent, i) => <div key={i}>
-                <SubstanceView substance={reagent} />
+                <SubstanceView
+                    substance={reagent}
+                    comparisonTarget={problem.products[0]}
+                />
                 &nbsp;<button onClick={() => {
                     setCurrentReaction(update(currentReaction, {
                         reagent: { $set: reagent },
@@ -204,7 +232,10 @@ export default function Component() {
                     const substance =
                         `ca238v1_${parseInt(space.reverse().join(""), 3)}` as const;
                     return <div key={i}>
-                        <SubstanceView substance={substance} />
+                        <SubstanceView
+                            substance={substance}
+                            comparisonTarget={problem.products[0]}
+                        />
                         &nbsp;<button onClick={() => {
                             setCurrentReaction(update(currentReaction, {
                                 reagent: { $set: substance },
