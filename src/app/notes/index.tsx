@@ -5,6 +5,7 @@ import { isRule } from "../../ca237v1/rule-io";
 import { isNote23727v1 } from "../../note23727v1";
 import jsonBeautify from "json-beautify";
 import { App, Credentials } from "realm-web";
+import { useState } from "react";
 
 
 const NoteView = ({
@@ -83,6 +84,26 @@ export default function Component() {
             });
     } else { isPreviewRule = isRule(filterTags); rule = filterTags; }
 
+    const [page, setPage] = useState(0);
+    const notesOnPage = 50;
+    const pagination = () => {
+        return <div css={{ padding: "1em" }}>
+            {notes &&
+                Array.from({ length: Math.ceil(notes.length / notesOnPage) },
+                    (_, i) =>
+                        <button
+                            key={i}
+                            css={{
+                                padding: "0.5em",
+                                color: i === page
+                                    && "#00ff11 !important"
+                                    || "#009714 !important",
+                            }}
+                            onClick={() => setPage(i)}
+                        > {i}</button>)
+            }
+        </div >;
+    };
 
     return <div css={
         [{
@@ -102,8 +123,16 @@ export default function Component() {
                 width={canvasWidth}
                 height={canvasWidth * 0.80}
             />}
+        {pagination()}
         {notesStatus === "resolved"
-            && notes.map((note, i) =>
-                <NoteView key={i} note={note} isPreview={!isPreviewRule} />)}
+            && notes
+                .slice(page * notesOnPage, (page + 1) * notesOnPage)
+                .map((note, i) =>
+                    <NoteView
+                        key={i}
+                        note={note}
+                        isPreview={!isPreviewRule}
+                    />)}
+        {pagination()}
     </div >;
 }
