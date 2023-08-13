@@ -71,7 +71,7 @@ const NoteView = ({
                 }}
             css={{ margin: "1em 1em 1em 0" }}
         >
-            Show data &thinsp;
+            “json” &thinsp;
             <span css={{
                 display: "inline-block",
                 transform: isShown ? "rotate(90deg)" : "rotate(0deg)",
