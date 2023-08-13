@@ -5,6 +5,7 @@ import { isRule } from "../../ca237v1/rule-io";
 import { isNote23727v1 } from "../../note23727v1";
 import jsonBeautify from "json-beautify";
 import { App, Credentials } from "realm-web";
+import { useState } from "react";
 
 
 const NoteView = ({
@@ -17,30 +18,74 @@ const NoteView = ({
     if (!isNote23727v1(note)) {
         return <div><pre>{jsonBeautify(note, null as any, 2, 80)}</pre></div>;
     }
+    const [isShown, setIsShown] = useState(false);
 
     const rule = note.tags.find(isRule);
-    return <div css={{}}>
+    const jsonValue = jsonBeautify(note, null as any, 2, 80);
+    const copyJSON = () => {
+        const selBox = document.createElement("textarea");
+        selBox.style.position = "fixed";
+        selBox.style.left = "0";
+        selBox.style.top = "0";
+        selBox.style.opacity = "0";
+        selBox.value = jsonValue;
+        document.body.appendChild(selBox);
+        selBox.focus();
+        selBox.select();
+        document.execCommand("copy");
+        document.body.removeChild(selBox);
+    };
+    return <div css={{ width: "475px" }}    >
         <span>s: {note.s}  </span>
-        {
-            Array.isArray(note.tags) &&
-            note.tags.map((tag, i) => {
-                const filterObj = { tags: tag };
-                const filter = JSON.stringify(filterObj);
-                const searchParams = new URLSearchParams();
-                searchParams.set("filter", filter);
-                const href = `?${searchParams.toString()}`;
-                return <a
-                    css={{ padding: "1em" }}
-                    key={i}
-                    href={href}
-                >{tag}</a>;
-            })
-        }
         {isPreview
             && rule
-            && <RulePreview code={rule} css={{ width: "50vmin" }} />}
-        <span>text:  {note.text} </span>
-        <div><pre>{jsonBeautify(note, null as any, 2, 80)}</pre></div>
+            && <RulePreview code={rule} />
+        }
+        <div>
+            <span css={{ display: "inline-block" }}>text:  {note.text} </span>
+        </div> <br />
+        <div>{note.tags && <span>tags: &thinsp; </span>}
+            {
+                Array.isArray(note.tags) &&
+                note.tags.map((tag, i) => {
+                    const filterObj = { tags: tag };
+                    const filter = JSON.stringify(filterObj);
+                    const searchParams = new URLSearchParams();
+                    searchParams.set("filter", filter);
+                    const href = `?${searchParams.toString()}`;
+                    return <a
+                        css={{ display: "inline-block", paddingRight: "1em" }}
+                        key={i}
+                        href={href}
+                    >{tag}</a>;
+                })
+            }
+        </div> <br />
+        <button
+            title={jsonValue}
+            onClick={
+                () => {
+                    setIsShown(!isShown);
+                    console.log(jsonValue);
+                    copyJSON();
+                }}
+            css={{ margin: "1em 1em 1em 0" }}
+        >
+            “json” &thinsp;
+            <span css={{
+                display: "inline-block",
+                transform: isShown ? "rotate(90deg)" : "rotate(0deg)",
+                transition: "transform 0.2s",
+            }}> &gt;
+            </span>
+        </button>
+
+        {isShown
+            && <div>
+                <pre css={{ marginTop: "0" }}  >{jsonValue} </pre>
+            </div>
+        }
+
     </div >;
 };
 
@@ -83,12 +128,33 @@ export default function Component() {
             });
     } else { isPreviewRule = isRule(filterTags); rule = filterTags; }
 
+    const [page, setPage] = useState(0);
+    const notesOnPage = 50;
+    const pagination = () => {
+        return <div css={{ padding: "1em", margin: "0 auto" }}>
+            {notes &&
+                Array.from({ length: Math.ceil(notes.length / notesOnPage) },
+                    (_, i) =>
+                        <button
+                            key={i}
+                            css={{
+                                padding: "0.5em",
+                                color: i === page
+                                    && "#00ff11 !important"
+                                    || "#009714 !important",
+                            }}
+                            onClick={() => setPage(i)}
+                        > {i}</button>)
+            }
+        </div >;
+    };
 
     return <div css={
         [{
             fontSize: "0.7em",
             display: "flex",
             flexDirection: "column",
+            justifyContent: "space-evenly",
             padding: "1em",
         }, retroThemeCss]
     }>
@@ -102,8 +168,22 @@ export default function Component() {
                 width={canvasWidth}
                 height={canvasWidth * 0.80}
             />}
-        {notesStatus === "resolved"
-            && notes.map((note, i) =>
-                <NoteView key={i} note={note} isPreview={!isPreviewRule} />)}
+        {!isPreviewRule && pagination()}
+        <div css={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-evenly",
+        }}>
+            {notesStatus === "resolved"
+                && notes
+                    .slice(page * notesOnPage, (page + 1) * notesOnPage)
+                    .map((note, i) =>
+                        <NoteView
+                            key={i}
+                            note={note}
+                            isPreview={!isPreviewRule}
+                        />)}
+        </div>
+        {!isPreviewRule && pagination()}
     </div >;
 }
