@@ -6,12 +6,15 @@ import { isNote23727v1 } from "../../note23727v1";
 import jsonBeautify from "json-beautify";
 import { App, Credentials } from "realm-web";
 import { useState } from "react";
+import { jsx } from "@emotion/react";
 
 
 const NoteView = ({
     note,
     isPreview,
-}: {
+    css: cssProp,
+    ...props
+}: jsx.JSX.IntrinsicElements["div"] & {
     note: unknown,
     isPreview?: boolean,
 }) => {
@@ -35,15 +38,14 @@ const NoteView = ({
         document.execCommand("copy");
         document.body.removeChild(selBox);
     };
-    return <div css={{ width: "475px" }}    >
-        <span>s: {note.s}  </span>
+    return <div css={[{ width: "475px" }, cssProp]} {...props}>
         {isPreview
             && rule
             && <RulePreview code={rule} />
         }
         <div>
             <span css={{ display: "inline-block" }}>text:  {note.text} </span>
-        </div> <br />
+        </div>
         <div>{note.tags && <span>tags: &thinsp; </span>}
             {
                 Array.isArray(note.tags) &&
@@ -60,7 +62,7 @@ const NoteView = ({
                     >{tag}</a>;
                 })
             }
-        </div> <br />
+        </div>
         <button
             title={jsonValue}
             onClick={
@@ -69,9 +71,8 @@ const NoteView = ({
                     console.log(jsonValue);
                     copyJSON();
                 }}
-            css={{ margin: "1em 1em 1em 0" }}
         >
-            “json” &thinsp;
+            note json &thinsp;
             <span css={{
                 display: "inline-block",
                 transform: isShown ? "rotate(90deg)" : "rotate(0deg)",
@@ -182,6 +183,9 @@ export default function Component() {
                             key={i}
                             note={note}
                             isPreview={!isPreviewRule}
+                            css={{
+                                margin: "1em",
+                            }}
                         />)}
         </div>
         {!isPreviewRule && pagination()}
