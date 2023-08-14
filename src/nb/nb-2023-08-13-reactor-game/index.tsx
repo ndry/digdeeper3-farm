@@ -51,9 +51,6 @@ const sSum = keyifyTable(buildFullTransitionLookupTable(
     }));
 
 
-// todo sum rule
-// todo 1 rule
-// todo shift rule
 // todo any rule from the above rules
 
 const runReactor = ({
@@ -63,20 +60,20 @@ const runReactor = ({
 }) => {
     const table = parseTable(rule);
     let prevSpace = parseTable(reagent1);
-    let space = parseTable(reagent1);
+    let space = parseTable(reagent2);
     for (let ti = 0; ti < t; ti++) {
         const nextSpace = space.map((_, x) => table[getFullCombinedState(
             stateCount,
             space.at(x - 1)!,
             space[x],
-            space.at(x + 1)!,
+            space.at(x - space.length + 1)!,
             prevSpace[x])]);
         prevSpace = space;
         space = nextSpace;
     }
     return {
-        reagent1: `ca237v1_${parseInt(prevSpace.reverse().join(""), 3)}` as const,
-        reagent2: `ca237v1_${parseInt(space.reverse().join(""), 3)}` as const,
+        reagent1: keyifyTable(prevSpace),
+        reagent2: keyifyTable(space),
     };
 };
 
@@ -107,11 +104,11 @@ const runReactor = ({
 const asciiStateMap = ["·", "ı", "x"] as const;
 
 export function SubstanceView({
-    substance,
-}: jsx.JSX.IntrinsicElements["div"] & {
+    substance, ...props
+}: jsx.JSX.IntrinsicElements["span"] & {
     substance: Rule,
 }) {
-    return <span>
+    return <span {...props}>
         <a href={"./notes/?" + (() => {
             const s = new URLSearchParams();
             s.set("filter", JSON.stringify({ tags: substance }));
@@ -152,8 +149,8 @@ export function ReactionView({
 
     return <div
         css={{
-            border: "1px solid lime",
-            padding: "1em",
+            border: "1px solid #00ff0044",
+            padding: "0.5em",
         }}
     >
         Reaction: <br />
@@ -182,18 +179,76 @@ export function CompactSubstanceView({
 
 
 export default function Component() {
+    const target = useMemo(() => ca237v1FromSeed(SHA256("target")), []);
+
+
+    const x = useMemo(() => {
+        const targetTable = parseTable(target);
+        const s0Table = parseTable(s0);
+
+        const t1 = runReactor({
+            rule: sSum,
+            reagent1: target,
+            reagent2: sMiddleOne,
+            t: 1,
+        }).reagent2;
+
+        const o1 = runReactor({
+            rule: sShiftLeft,
+            reagent1: sMiddleOne,
+            reagent2: sMiddleOne,
+            t: 1,
+        }).reagent2;
+
+        const t2 = runReactor({
+            rule: sSum,
+            reagent1: t1,
+            reagent2: o1,
+            t: 1,
+        }).reagent2;
+
+        const t3 = runReactor({
+            rule: sSum,
+            reagent1: t2,
+            reagent2: o1,
+            t: 1,
+        }).reagent2;
+
+        return [{
+            rule: sSum,
+            reagent1: target,
+            reagent2: sMiddleOne,
+            t: 1,
+        }, {
+            rule: sShiftLeft,
+            reagent1: sMiddleOne,
+            reagent2: sMiddleOne,
+            t: 1,
+        }, {
+            rule: sSum,
+            reagent1: t1,
+            reagent2: o1,
+            t: 1,
+        }, {
+            rule: sSum,
+            reagent1: t2,
+            reagent2: o1,
+            t: 1,
+        }];
+    }, [target]);
+
     return (
         <div css={[{
             fontSize: "0.71em",
-            display: "flex",
-            flexDirection: "column",
+            // display: "flex",
+            // flexDirection: "column",
             padding: "1em",
         }, retroThemeCss]}>
             Hello World from {import.meta.url}
             <br />
             s0: <SubstanceView substance={s0} />
 
-            <br />
+            {/* <br />
             <div css={{
                 // fontSize: "0.75em",
             }}>
@@ -203,7 +258,15 @@ export default function Component() {
                     reagent2={sMiddleOne}
                     t={5}
                 />
-            </div>
+            </div> */}
+
+
+            <br />
+            .t: <SubstanceView substance={target} />
+            <br />
+            <JsonButton name="x" obj={x} />
+            {x.map((reaction, i) => <ReactionView key={i} {...reaction} />)}
+
             {/* <JsonButton name="Problem" obj={problem} />
             Target products:
             {problem.products.map((product, i) => <div key={i}>
