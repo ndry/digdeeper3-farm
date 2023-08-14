@@ -219,7 +219,18 @@ export default function Component() {
             if (parseTable(sCurrent)[i] !== targetTable[i]) {
                 sCurrent = rrr(log, sSum, sCurrent, sOne, 1);
             }
-            sOne = rrr(log, sShiftRight, sOne, sOne, 1);
+
+            let shift = 1;
+            while (
+                i < targetTable.length
+                && parseTable(sCurrent)[i + 1] === targetTable[i + 1]
+            ) {
+                i++;
+                shift++;
+            }
+            if (i < targetTable.length) {
+                sOne = rrr(log, sShiftRight, sOne, sOne, shift);
+            }
         }
 
         return log;
