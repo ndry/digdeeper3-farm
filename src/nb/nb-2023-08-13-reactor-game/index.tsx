@@ -94,7 +94,13 @@ export function SubstanceView({
     substance: Rule,
 }) {
     return <span>
-        {substance.padStart(21, ".")}
+        <a href={"./notes/?" + (() => {
+            const s = new URLSearchParams();
+            s.set("filter", JSON.stringify({ tags: substance }));
+            return s.toString();
+        })()}>
+            {substance.padStart(50, ".")}
+        </a>
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
     </span>;

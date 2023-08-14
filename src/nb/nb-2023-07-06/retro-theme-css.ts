@@ -48,4 +48,8 @@ export const retroThemeCss = [{
     }
     & tr:nth-of-type(2n) { background: rgba(0, 255, 17, 0.08);}
     & pre { font-family: 'Noto Sans Mono', monospace; }
+    & a { color: #0099ff; }
+    & a:hover { color: #00bbff; }
+    & a:visited { color: #ff99ff; }
+    & a:visited:hover { color: #ffbbff; }
 `];
