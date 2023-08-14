@@ -64,8 +64,6 @@ const sSum = keyifyTable(buildFullTransitionLookupTable(
         return (c + p) % stateCount;
     }));
 
-// todo any rule from the above rules
-
 const runReactor = ({
     rule, reagent1, reagent2, t,
 }: {
@@ -247,122 +245,11 @@ export default function Component() {
             <br />
             s0: <SubstanceView substance={s0} />
 
-            {/* <br />
-            <div css={{
-                // fontSize: "0.75em",
-            }}>
-                <ReactionView
-                    rule={sSum}
-                    reagent1={s0}
-                    reagent2={sMiddleOne}
-                    t={5}
-                />
-            </div> */}
-
-
             <br />
             .t: <SubstanceView substance={target} />
             <br />
             <JsonButton name="x" obj={x} />
             {x.map((reaction, i) => <ReactionView key={i} {...reaction} />)}
-
-            {/* <JsonButton name="Problem" obj={problem} />
-            Target products:
-            {problem.products.map((product, i) => <div key={i}>
-                <SubstanceView
-                    substance={product}
-                    comparisonTarget={problem.products[0]}
-                />
-            </div>)}
-            Reaagents:
-            {problem.reagents.map((reagent, i) => <div key={i}>
-                <SubstanceView
-                    substance={reagent}
-                    comparisonTarget={problem.products[0]}
-                />
-                &nbsp;<button onClick={() => {
-                    setCurrentReaction(update(currentReaction, {
-                        reagent: { $set: reagent },
-                    }));
-                }}>as reagent</button>
-                &nbsp;<button onClick={() => {
-                    setCurrentReaction(update(currentReaction, {
-                        rule: { $set: reagent },
-                    }));
-                }}>as rule</button>
-            </div>)}
-            <div css={{
-                display: "flex",
-                flexFlow: "row wrap",
-                paddingTop: "1em",
-            }}>
-                {reactionLog.map((reaction, i) => <div
-                    key={i}
-                    css={{
-                        fontSize: "0.6em",
-                    }}
-                >
-                    <button onClick={() => {
-                        setReactionLog(update(reactionLog, {
-                            $splice: [[i, 1]],
-                        }));
-                    }}>x</button>
-                    <br />
-                    &#x2B4D; <SubstanceView
-                        substance={reaction.rule}
-                        comparisonTarget={problem.products[0]}
-                    />
-                    <br />
-                    &#x269B; <SubstanceView
-                        substance={reaction.reagent}
-                        comparisonTarget={problem.products[0]}
-                    />
-                    {Array.from({ length: 30 }).map((_, i) => {
-                        const { reagent, rule } = reaction;
-
-                        const table = parseCa238v1Table(rule);
-                        let space = parseCa238v1Table(reagent);
-                        for (let t = 0; t < i; t++) {
-                            space = space.map((_, x) => {
-                                const left = space.at(x - 1)!;
-                                const right = space.at(x - space.length + 1)!;
-                                const center = space[x];
-                                const cs = left * 9 + center * 3 + right;
-                                return table[cs];
-                            });
-                        }
-                        const substance =
-                            `ca238v1_${parseInt(space.reverse().join(""), 3)}` as const;
-                        return <div key={i}>
-                            <CompactSubstanceView
-                                substance={substance}
-                                comparisonTarget={problem.products[0]}
-                            />
-                            &nbsp;<button onClick={() => {
-                                setCurrentReaction(update(reaction, {
-                                    reagent: { $set: substance },
-                                }));
-                            }}>&#x269B;</button>
-                            &nbsp;<button onClick={() => {
-                                setCurrentReaction(update(reaction, {
-                                    rule: { $set: substance },
-                                }));
-                            }}>&#x2B4D;</button>
-                            &nbsp;<button
-                                onClick={() => {
-                                    registerSubstanceSource(substance, {
-                                        reagent,
-                                        rule,
-                                        t: i,
-                                    });
-                                    setReactionLog(update(reactionLog, {
-                                        $push: [{ reagent, rule }],
-                                    }));
-                                }}
-                            >&#x2710;</button>
-                        </div>;
-                    })}</div>)}
-            </div> */}
         </div >
     );
 }
