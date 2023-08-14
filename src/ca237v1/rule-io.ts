@@ -16,7 +16,7 @@ const asIdGuard = <T>(fn: (x: T) => boolean) => fn as (x: T) => x is typeof x;
 export const RuleDecoder = pipe(
     D.string,
     D.refine(
-        (rule): rule is `${typeof i}_${string}` => r.test(rule),
+        (rule): rule is `${typeof i}_${bigint}` => r.test(rule),
         `${i}/\${string representing base 10 number without leading zeros}`),
     D.refine(
         asIdGuard((rule) => BigInt(rule.slice(i.length + 1)) < ruleSpaceSize),

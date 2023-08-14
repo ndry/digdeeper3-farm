@@ -40,16 +40,29 @@ const sShiftLeft = keyifyTable(buildFullTransitionLookupTable(
         return n2;
     }));
 
+const sShiftRight = keyifyTable(buildFullTransitionLookupTable(
+    stateCount,
+    (stateCount, n1, c, n2, p) => {
+        return n1;
+    }));
+
 const sMiddleOne = keyifyTable(Array.from(
     { length: 81 },
     (_, i) => i === 40 ? 1 : 0));
+
+const sRightOne = keyifyTable(Array.from(
+    { length: 81 },
+    (_, i) => i === 80 ? 1 : 0));
+
+const sLeftOne = keyifyTable(Array.from(
+    { length: 81 },
+    (_, i) => i === 0 ? 1 : 0));
 
 const sSum = keyifyTable(buildFullTransitionLookupTable(
     stateCount,
     (stateCount, n1, c, n2, p) => {
         return (c + p) % stateCount;
     }));
-
 
 // todo any rule from the above rules
 
@@ -75,6 +88,16 @@ const runReactor = ({
         reagent1: keyifyTable(prevSpace),
         reagent2: keyifyTable(space),
     };
+};
+const rr = (rule: Rule, reagent1: Rule, reagent2: Rule, t: number) => ({
+    rule, reagent1, reagent2, t,
+});
+const rrr = (log: {
+    rule: Rule, reagent1: Rule, reagent2: Rule, t: number,
+}[], rule: Rule, reagent1: Rule, reagent2: Rule, t: number) => {
+    const r = rr(rule, reagent1, reagent2, t);
+    log.push(r);
+    return runReactor(r).reagent2;
 };
 
 // export type Reagent = "s0" | {
@@ -184,57 +207,22 @@ export default function Component() {
 
     const x = useMemo(() => {
         const targetTable = parseTable(target);
-        const s0Table = parseTable(s0);
 
-        const t1 = runReactor({
-            rule: sSum,
-            reagent1: target,
-            reagent2: sMiddleOne,
-            t: 1,
-        }).reagent2;
+        const log = [] as { rule: Rule, reagent1: Rule, reagent2: Rule, t: number }[];
 
-        const o1 = runReactor({
-            rule: sShiftLeft,
-            reagent1: sMiddleOne,
-            reagent2: sMiddleOne,
-            t: 1,
-        }).reagent2;
+        let sOne = sLeftOne;
+        let sCurrent = s0;
+        for (let i = 0; i < targetTable.length; i++) {
+            if (parseTable(sCurrent)[i] !== targetTable[i]) {
+                sCurrent = rrr(log, sSum, sCurrent, sOne, 1);
+            }
+            if (parseTable(sCurrent)[i] !== targetTable[i]) {
+                sCurrent = rrr(log, sSum, sCurrent, sOne, 1);
+            }
+            sOne = rrr(log, sShiftRight, sOne, sOne, 1);
+        }
 
-        const t2 = runReactor({
-            rule: sSum,
-            reagent1: t1,
-            reagent2: o1,
-            t: 1,
-        }).reagent2;
-
-        const t3 = runReactor({
-            rule: sSum,
-            reagent1: t2,
-            reagent2: o1,
-            t: 1,
-        }).reagent2;
-
-        return [{
-            rule: sSum,
-            reagent1: target,
-            reagent2: sMiddleOne,
-            t: 1,
-        }, {
-            rule: sShiftLeft,
-            reagent1: sMiddleOne,
-            reagent2: sMiddleOne,
-            t: 1,
-        }, {
-            rule: sSum,
-            reagent1: t1,
-            reagent2: o1,
-            t: 1,
-        }, {
-            rule: sSum,
-            reagent1: t2,
-            reagent2: o1,
-            t: 1,
-        }];
+        return log;
     }, [target]);
 
     return (
