@@ -129,13 +129,16 @@ export function SubstanceView({
 }: jsx.JSX.IntrinsicElements["span"] & {
     substance: Rule,
 }) {
+    const padLen = 47 - substance.length;
+    const pad = Array.from({ length: padLen }, () => ".").join("");
     return <span {...props}>
+        {pad}
         <a href={"./notes/?" + (() => {
             const s = new URLSearchParams();
             s.set("filter", JSON.stringify({ tags: substance }));
             return s.toString();
         })()}>
-            {substance.padStart(47, ".")}
+            {substance}
         </a>
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
