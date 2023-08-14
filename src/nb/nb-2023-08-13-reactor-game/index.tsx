@@ -8,9 +8,10 @@ import { HmacSHA256, SHA256, enc } from "crypto-js";
 import type * as CryptoJS from "crypto-js";
 import { jsx } from "@emotion/react";
 import { JsonButton } from "./json-button";
-import { Rule, parseTable, ruleSpaceSize } from "../../ca237v1/rule-io";
+import { Rule, keyifyTable, parseTable, ruleSpaceSize } from "../../ca237v1/rule-io";
 import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
 import { stateCount } from "../../ca237v1/state-count";
+import { buildFullTransitionLookupTable } from "../../ca237v1/build-full-transition-lookup-table";
 
 
 type WordArray = CryptoJS.lib.WordArray;
@@ -32,6 +33,23 @@ const s0 = (() => {
     const s0 = ca237v1FromSeed(seed);
     return s0;
 })();
+
+const sShiftLeft = keyifyTable(buildFullTransitionLookupTable(
+    stateCount,
+    (stateCount, n1, c, n2, p) => {
+        return n2;
+    }));
+
+const sMiddleOne = keyifyTable(Array.from(
+    { length: 81 },
+    (_, i) => i === 40 ? 1 : 0));
+
+const sSum = keyifyTable(buildFullTransitionLookupTable(
+    stateCount,
+    (stateCount, n1, c, n2, p) => {
+        return (c + p) % stateCount;
+    }));
+
 
 // todo sum rule
 // todo 1 rule
@@ -86,7 +104,7 @@ const runReactor = ({
 //     return products;
 // }
 
-const asciiStateMap = [".", "~", "x"] as const;
+const asciiStateMap = ["·", "ı", "x"] as const;
 
 export function SubstanceView({
     substance,
@@ -99,12 +117,58 @@ export function SubstanceView({
             s.set("filter", JSON.stringify({ tags: substance }));
             return s.toString();
         })()}>
-            {substance.padStart(50, ".")}
+            {substance.padStart(47, ".")}
         </a>
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
     </span>;
 }
+
+export function ReactionView({
+    rule, reagent1, reagent2, t,
+}: {
+    rule: Rule, reagent1: Rule, reagent2: Rule, t: number,
+}) {
+    const table = parseTable(rule);
+    const spacetime = [
+        parseTable(reagent1),
+        parseTable(reagent2),
+    ];
+
+    while (spacetime.length < t + 2) {
+        const prevSpace = spacetime[spacetime.length - 2];
+        const space = spacetime[spacetime.length - 1];
+        const nextSpace = space.map((_, x) => table[getFullCombinedState(
+            stateCount,
+            space.at(x - 1)!,
+            space[x],
+            space.at(x - space.length + 1)!,
+            prevSpace[x])]);
+        spacetime.push(nextSpace);
+    }
+
+
+    console.log({ spacetime });
+
+    return <div
+        css={{
+            border: "1px solid lime",
+            padding: "1em",
+        }}
+    >
+        Reaction: <br />
+        &#x2B4D;<SubstanceView substance={rule} />
+        <br />
+        <br />
+        {spacetime.map((space, i) => <div key={i}>
+            &#x269B;
+            <SubstanceView
+                substance={keyifyTable(space)}
+            />
+        </div>)}
+    </div>;
+}
+
 
 export function CompactSubstanceView({
     substance,
@@ -128,6 +192,18 @@ export default function Component() {
             Hello World from {import.meta.url}
             <br />
             s0: <SubstanceView substance={s0} />
+
+            <br />
+            <div css={{
+                // fontSize: "0.75em",
+            }}>
+                <ReactionView
+                    rule={sSum}
+                    reagent1={s0}
+                    reagent2={sMiddleOne}
+                    t={5}
+                />
+            </div>
             {/* <JsonButton name="Problem" obj={problem} />
             Target products:
             {problem.products.map((product, i) => <div key={i}>
