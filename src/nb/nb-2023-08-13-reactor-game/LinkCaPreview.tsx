@@ -3,23 +3,28 @@ import { RulePreview } from "../../app/rule-preview";
 import { Rule } from "../../ca237v1/rule-io";
 
 
-export function LinkCaPreview({ link, rule }: { link: string, rule: Rule }) {
+export function LinkCaPreview({ substance }: { substance: Rule }) {
     const [isHovered, setIsHovered] = useState(false);
 
     const refLink = useRef<HTMLAnchorElement | null>(null);
     const distanceToBottom = refLink.current?.getBoundingClientRect().bottom;
     const viewportHeight = window.innerHeight;
     const isTooLow =
-     viewportHeight - ( distanceToBottom ? distanceToBottom : 0 ) > 140;
+        viewportHeight - (distanceToBottom ? distanceToBottom : 0) > 140;
 
     return <>
         <a
             ref={refLink}
-            href={link}
-            css={{ position: "relative"}}
+            href={"./notes/?" + (() => {
+                const s = new URLSearchParams();
+                s.set("filter", JSON.stringify({ tags: substance }));
+                return s.toString();
+
+            })()}
+            css={{ position: "relative" }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-        >  {link}            
+        >  {substance}
             {isHovered
                 && <div
                     css={{
@@ -33,7 +38,7 @@ export function LinkCaPreview({ link, rule }: { link: string, rule: Rule }) {
                         zIndex: 100,
                         paddingLeft: "0.5em",
                     }}>
-                         <RulePreview code={rule} /> 
+                    <RulePreview code={substance} />
                 </div>}
         </a>
 
