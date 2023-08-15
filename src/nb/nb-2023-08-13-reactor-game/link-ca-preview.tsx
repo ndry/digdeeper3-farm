@@ -29,9 +29,10 @@ export function LinkCaPreview({ link, rule }: { link: string, rule: Rule }) {
                         background: "#00000044",
                         top: isTooLow ? "0px" : "auto",
                         bottom: !isTooLow ? "0px" : "auto",
-                        left: "101%",
+                        left: "100%",
                         backgroundColor: "#000000",
                         zIndex: 100,
+                        paddingLeft: "0.5em",
                     }}>
                     <RulePreview code={rule} />
                 </div>}
