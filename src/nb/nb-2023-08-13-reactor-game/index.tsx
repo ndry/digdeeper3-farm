@@ -12,6 +12,7 @@ import { createAutoRecipe } from "./create-auto-recipe";
 import { s0 } from "./s0";
 import { ca237v1FromSeed } from "./ca237v1-from-seed";
 import { rrr } from "./run-reactor";
+import { LinkCaPreview } from "./LinkCaPreview";
 
 
 
@@ -28,13 +29,14 @@ export function SubstanceView({
     const pad = Array.from({ length: padLen }, () => ".").join("");
     return <span {...props}>
         {pad}
-        <a href={"./notes/?" + (() => {
+        <LinkCaPreview link={"./notes/?" + (() => {
             const s = new URLSearchParams();
             s.set("filter", JSON.stringify({ tags: substance }));
             return s.toString();
-        })()}>
-            {substance}
-        </a>
+
+        })()}
+            rule={substance}
+        />
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
     </span>;
@@ -69,6 +71,7 @@ export function ReactionView({
             padding: "0.5em",
         }}
     >
+
         Reaction: <br />
         &#x2B4D;<SubstanceView substance={rule} />
         <br />
