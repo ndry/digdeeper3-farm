@@ -10,16 +10,17 @@ export function LinkCaPreview({ link, rule }: { link: string, rule: Rule }) {
     const distanceToBottom = refLink.current?.getBoundingClientRect().bottom;
     const viewportHeight = window.innerHeight;
     const isTooLow =
-     viewportHeight - ( distanceToBottom ? distanceToBottom : 0 ) > 140;
+        viewportHeight - (distanceToBottom ? distanceToBottom : 0) > 140;
 
     return <>
         <a
             ref={refLink}
             href={link}
-            css={{ position: "relative"}}
+            css={{ position: "relative" }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-        >  {link}            
+        >
+            {rule}
             {isHovered
                 && <div
                     css={{
@@ -32,7 +33,7 @@ export function LinkCaPreview({ link, rule }: { link: string, rule: Rule }) {
                         backgroundColor: "#000000",
                         zIndex: 100,
                     }}>
-                         <RulePreview code={rule} /> 
+                    <RulePreview code={rule} />
                 </div>}
         </a>
 

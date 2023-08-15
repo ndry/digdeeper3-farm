@@ -12,7 +12,7 @@ import { createAutoRecipe } from "./create-auto-recipe";
 import { s0 } from "./s0";
 import { ca237v1FromSeed } from "./ca237v1-from-seed";
 import { rrr } from "./run-reactor";
-import { LinkCaPreview } from "./LinkCaPreview";
+import { LinkCaPreview } from "./link-ca-preview";
 
 
 
@@ -152,53 +152,21 @@ export const tickInPlace = (worldState: {
 
 
 
-export default function Component() {
-    const [renderTrigger, setRenderTrigger] = useState(0);
-    const s1 = useMemo(() => ca237v1FromSeed(SHA256("s1")), []);
-    const world = useMemo(createWorld, []);
-    console.log(renderTrigger);
-    useEffect(() => {
-        const h = setInterval(() => {
-            for (let i = 0; i < 100; i++) {
-                world.soup.push(s1);
-            }
-            tickInPlace(world);
-            setRenderTrigger(renderTrigger => renderTrigger + 1);
-        }, 50);
-        return () => clearInterval(h);
-    }, [world]);
-
-    return (
-        <div css={[{
-            fontSize: "0.71em",
-            // display: "flex",
-            // flexDirection: "column",
-            padding: "1em",
-        }, retroThemeCss]}>
-            Hello World from {import.meta.url}
-            <br />
-            render: {renderTrigger}
-            <pre>{jsonBeautify(world, null as any, 2, 80)}</pre>
-        </div >
-    );
-}
-
-
 // export default function Component() {
-//     const target = useMemo(() => ca237v1FromSeed(SHA256("target")), []);
-
-//     // const x = useMemo(() => createAutoRecipe(s0, target), [target]);
-//     const x = useMemo(() => {
-//         const log = [] as Parameters<typeof rrr>[0];
-
-//         const t0 = rrr(log, s0, s0, s0, 6);
-//         const t1 = rrr(log, t0, s0, s0, 22);
-//         const t2 = rrr(log, t1, s0, s0, 22);
-//         const t3 = rrr(log, t2, s0, t1, 5);
-//         const t4 = rrr(log, s0, t1, t3, 1);
-
-//         return log;
-//     }, [target]);
+//     const [renderTrigger, setRenderTrigger] = useState(0);
+//     const s1 = useMemo(() => ca237v1FromSeed(SHA256("s1")), []);
+//     const world = useMemo(createWorld, []);
+//     console.log(renderTrigger);
+//     useEffect(() => {
+//         const h = setInterval(() => {
+//             for (let i = 0; i < 100; i++) {
+//                 world.soup.push(s1);
+//             }
+//             tickInPlace(world);
+//             setRenderTrigger(renderTrigger => renderTrigger + 1);
+//         }, 50);
+//         return () => clearInterval(h);
+//     }, [world]);
 
 //     return (
 //         <div css={[{
@@ -209,17 +177,49 @@ export default function Component() {
 //         }, retroThemeCss]}>
 //             Hello World from {import.meta.url}
 //             <br />
-//             s0: <SubstanceView substance={s0} />
-
-//             <br />
-//             .t: <SubstanceView substance={target} />
-//             <br />
-//             <JsonButton name="x" obj={x} />
-//             {x.map((reaction, i) => <ReactionView
-//                 key={i}
-//                 {...reaction}
-//                 scoreTarget={target}
-//             />)}
+//             render: {renderTrigger}
+//             <pre>{jsonBeautify(world, null as any, 2, 80)}</pre>
 //         </div >
 //     );
 // }
+
+
+export default function Component() {
+    const target = useMemo(() => ca237v1FromSeed(SHA256("target")), []);
+
+    // const x = useMemo(() => createAutoRecipe(s0, target), [target]);
+    const x = useMemo(() => {
+        const log = [] as Parameters<typeof rrr>[0];
+
+        const t0 = rrr(log, s0, s0, s0, 6);
+        const t1 = rrr(log, t0, s0, s0, 22);
+        const t2 = rrr(log, t1, s0, s0, 22);
+        const t3 = rrr(log, t2, s0, t1, 5);
+        const t4 = rrr(log, s0, t1, t3, 1);
+
+        return log;
+    }, [target]);
+
+    return (
+        <div css={[{
+            fontSize: "0.71em",
+            // display: "flex",
+            // flexDirection: "column",
+            padding: "1em",
+        }, retroThemeCss]}>
+            Hello World from {import.meta.url}
+            <br />
+            s0: <SubstanceView substance={s0} />
+
+            <br />
+            .t: <SubstanceView substance={target} />
+            <br />
+            <JsonButton name="x" obj={x} />
+            {x.map((reaction, i) => <ReactionView
+                key={i}
+                {...reaction}
+                scoreTarget={target}
+            />)}
+        </div >
+    );
+}
