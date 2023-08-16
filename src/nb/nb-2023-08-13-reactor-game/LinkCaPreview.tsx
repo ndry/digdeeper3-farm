@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RulePreview } from "../../app/rule-preview";
 import { Rule } from "../../ca237v1/rule-io";
 
@@ -7,10 +7,29 @@ export function LinkCaPreview({ substance }: { substance: Rule }) {
     const [isHovered, setIsHovered] = useState(false);
 
     const refLink = useRef<HTMLAnchorElement | null>(null);
-    const distanceToBottom = refLink.current?.getBoundingClientRect().bottom;
-    const viewportHeight = window.innerHeight;
-    const isTooLow =
-        viewportHeight - (distanceToBottom ? distanceToBottom : 0) > 140;
+    const [isLow, setIsLow] = useState(false);
+
+    useEffect(() => {
+
+        const handleResize = () => {
+            const elementHeight = 140;
+            const windowHeight = window.innerHeight;
+            const distanceToBottom =
+                refLink.current?.getBoundingClientRect().bottom;
+            setIsLow(windowHeight -
+                (distanceToBottom ? distanceToBottom : 0) > elementHeight);
+        };
+
+        handleResize();
+
+        window.addEventListener("resize", handleResize);
+        window.addEventListener("scroll", handleResize);
+        return () => {
+            window.removeEventListener("resize", handleResize);
+            window.removeEventListener("scroll", handleResize);
+        };
+
+    }, []);
 
     return <>
         <a
@@ -30,9 +49,8 @@ export function LinkCaPreview({ substance }: { substance: Rule }) {
                     css={{
                         position: "absolute",
                         width: "fit-content",
-                        background: "#00000044",
-                        top: isTooLow ? "0px" : "auto",
-                        bottom: !isTooLow ? "0px" : "auto",
+                        top: isLow ? "0px" : "auto",
+                        bottom: !isLow ? "0px" : "auto",
                         left: "100%",
                         backgroundColor: "#000000",
                         zIndex: 100,
