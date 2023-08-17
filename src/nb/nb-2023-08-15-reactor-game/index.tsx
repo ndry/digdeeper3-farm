@@ -39,14 +39,7 @@ export function SubstanceView({
     const pad = Array.from({ length: padLen }, () => ".").join("");
     return <span {...props}>
         {pad}
-        <LinkCaPreview link={"./notes/?" + (() => {
-            const s = new URLSearchParams();
-            s.set("filter", JSON.stringify({ tags: substance }));
-            return s.toString();
-
-        })()}
-            rule={substance}
-        />
+        <LinkCaPreview substance={substance} />
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
         {scoreTarget && <>&nbsp;/&nbsp;{scoreSubstance(substance, scoreTarget).toString()}</>}

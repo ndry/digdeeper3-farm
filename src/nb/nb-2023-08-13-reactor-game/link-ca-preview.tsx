@@ -42,7 +42,8 @@ export function LinkCaPreview({ substance }: { substance: Rule }) {
             css={{ position: "relative" }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-        >  {substance}
+        >
+            {substance}
             {isHovered
                 && <div
                     css={{
