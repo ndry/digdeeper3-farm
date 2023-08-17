@@ -176,10 +176,13 @@ export default function Component() {
     }), []);
     useEffect(() => {
         if (isPaused) { return; }
-        const h = setInterval(() => {
+        let h: ReturnType<typeof setTimeout>;
+        const tick = () => {
             tickInPlace(world);
             setRenderTrigger(renderTrigger => renderTrigger + 1);
-        }, 50);
+            h = setTimeout(tick, 100);
+        };
+        tick();
         return () => clearInterval(h);
     }, [world, isPaused]);
 
