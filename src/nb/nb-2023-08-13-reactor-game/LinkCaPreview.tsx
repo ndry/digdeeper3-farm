@@ -19,7 +19,6 @@ export function LinkCaPreview({ substance }: { substance: Rule }) {
             setIsLow(windowHeight -
                 (distanceToBottom ? distanceToBottom : 0) > elementHeight);
         };
-
         handleResize();
 
         window.addEventListener("resize", handleResize);
