@@ -105,82 +105,129 @@ export const createWorld = ({
     soup: Rule[],
 }) => ({
     t: 0,
+    tt: 0,
     creatures: [] as Array<{
         rule: Rule,
+        _ruleTable: ReadonlyArray<number>,
         energy: number,
         seed: number,
     }>,
-    soup,
+    soup: soup.map(s => ({
+        rule: s,
+        _ruleTable: parseTable(s),
+    })),
 });
 export const tickInPlace = (worldState: {
     t: number;
+    tt: number;
     creatures: Array<{
         rule: Rule,
+        _ruleTable: ReadonlyArray<number>,
         energy: number,
         seed: number,
     }>,
-    soup: Rule[],
-}) => {
-    if (worldState.soup.shift()) {
-        worldState.creatures.push({
-            rule: ca237v1FromSeed(SHA256("creature." + worldState.t)),
-            energy: 27,
-            seed: 0,
-        });
+    soup: Array<{
+        rule: Rule,
+        _ruleTable: ReadonlyArray<number>,
+    }>,
+}, cTicks: number) => {
+    const random01 = Math.random;
+
+    const newSoup = [] as Array<{
+        rule: Rule,
+        _ruleTable: ReadonlyArray<number>,
+    }>;
+
+    const _cTicks = Math.min(cTicks, worldState.creatures.length);
+
+    if (random01() < (_cTicks + 1) / (worldState.creatures.length + 1)) {
+        if (worldState.soup.shift()) {
+            const rule = ca237v1FromSeed(SHA256("rule." + worldState.t));
+            worldState.creatures.push({
+                rule,
+                _ruleTable: parseTable(rule),
+                energy: 27,
+                seed: 0,
+            });
+        }
     }
-    for (let i = worldState.creatures.length - 1; i >= 0; i--) {
+
+    for (let _ct = _cTicks - 1; _ct >= 0; _ct--) {
+        worldState.tt++;
+        const i = _cTicks === cTicks
+            ? _ct
+            : Math.floor(random01() * worldState.creatures.length);
         const c = worldState.creatures[i];
         const s = worldState.soup.shift();
-        const score = s ? scoreSubstance(s, c.rule) : 0;
+        let score = 0;
         if (s) {
-            const sTable = parseTable(s);
-            const cTable = parseTable(c.rule);
-            const eTable = Array.from(sTable);
+            const sTable = s._ruleTable;
+            const cTable = c._ruleTable;
+            const eTable = [...sTable];
             for (let i = 0; i < eTable.length; i++) {
-                eTable[i] =
-                    sTable[i] === cTable[i]
-                        ? (sTable[i] + (1 + c.seed % 2)) % 3
-                        : sTable[i];
+                if (sTable[i] === cTable[i]) {
+                    score++;
+                    eTable[i] = (sTable[i] + (1 + c.seed % 2)) % 3;
+                }
             }
-            worldState.soup.push(keyifyTable(eTable));
+            newSoup.push({
+                rule: keyifyTable(eTable),
+                _ruleTable: eTable,
+            });
         }
-        c.energy += score - 20;
+        c.energy += score - 28;
         if (c.energy > 81 * 4) {
             worldState.creatures.push({
                 rule: c.rule,
+                _ruleTable: c._ruleTable,
                 energy: 81,
                 seed: c.seed + 1,
             });
             worldState.creatures.push({
                 rule: c.rule,
+                _ruleTable: c._ruleTable,
                 energy: 81,
                 seed: c.seed + 2,
             });
             c.energy -= 81 * 3;
         } else if (c.energy <= 0) {
             worldState.creatures.splice(i, 1);
-            worldState.soup.push(c.rule);
+            newSoup.push({
+                rule: c.rule,
+                _ruleTable: c._ruleTable,
+            });
         }
     }
+    worldState.soup.push(...newSoup);
+
+    // shuffle soup
+    for (let i = worldState.soup.length - 1; i > 0; i--) {
+        const j = Math.floor(random01() * (i + 1));
+        [worldState.soup[i], worldState.soup[j]] =
+            [worldState.soup[j], worldState.soup[i]];
+    }
+
     worldState.t++;
 };
 
-
+const isPausedParam = !!(new URLSearchParams(location.search).get("paused"));
 
 export default function Component() {
-    const [isPaused, setIsPaused] = useState(false);
+    const [isPaused, setIsPaused] = useState(isPausedParam);
     const [renderTrigger, setRenderTrigger] = useState(0);
     const s1 = useMemo(() => ca237v1FromSeed(SHA256("s1")), []);
     const world = useMemo(() => createWorld({
-        soup: Array.from({ length: 1000 }, () => s0),
+        soup: Array.from({ length: 10000 }, () => s1),
     }), []);
     useEffect(() => {
         if (isPaused) { return; }
         let h: ReturnType<typeof setTimeout>;
         const tick = () => {
-            tickInPlace(world);
+            for (let i = 0; i < 1; i++) {
+                tickInPlace(world, 50);
+            }
             setRenderTrigger(renderTrigger => renderTrigger + 1);
-            h = setTimeout(tick, 100);
+            h = setTimeout(tick, 20);
         };
         tick();
         return () => clearInterval(h);
@@ -192,13 +239,17 @@ export default function Component() {
     }, {} as Record<Rule, number>);
     const creaturesStatsSorted: [Rule, number][] =
         Object.entries(creaturesStats).sort((a, b) => b[1] - a[1]);
+    const creaturesCount = world.creatures.length;
 
     const soupStats = world.soup.reduce((acc, c) => {
-        acc[c] = (acc[c] || 0) + 1;
+        acc[c.rule] = (acc[c.rule] || 0) + 1;
         return acc;
     }, {} as Record<Rule, number>);
     const soupStatsSorted: [Rule, number][] =
         Object.entries(soupStats).sort((a, b) => b[1] - a[1]);
+    const soupCount = world.soup.length;
+
+    const rowLimit = 25;
 
     return (
         <div css={[{
@@ -215,17 +266,32 @@ export default function Component() {
             <br />
             render: {renderTrigger}
             <br />
-            t: {world.t}
+            t: {world.t} / tt: {world.tt}
             <br />
-            creatures:
-            {creaturesStatsSorted.map(([rule, count]) => <div key={rule}>
-                <SubstanceView substance={rule} /> x {count}
-            </div>)}
-            soup:
-            {soupStatsSorted.map(([rule, count]) => <div key={rule}>
-                <SubstanceView substance={rule} /> x {count}
-            </div>)}
             <JsonButton obj={world} name="world" />
+            <br />
+            creatures ({creaturesCount}):
+            {creaturesStatsSorted
+                .slice(0, rowLimit)
+                .map(([rule, count]) =>
+                    <div key={rule}>
+                        <SubstanceView substance={rule} /> x {count}
+                    </div>)}
+            {creaturesStatsSorted.length > rowLimit
+                && <div>
+                    ... ({creaturesStatsSorted.length - rowLimit} more rows)
+                </div>}
+            soup ({soupCount}):
+            {soupStatsSorted
+                .slice(0, rowLimit)
+                .map(([rule, count]) =>
+                    <div key={rule}>
+                        <SubstanceView substance={rule} /> x {count}
+                    </div>)}
+            {soupStatsSorted.length > rowLimit
+                && <div>
+                    ... ({soupStatsSorted.length - rowLimit} more rows)
+                </div>}
         </div >
     );
 }
