@@ -17,12 +17,19 @@ import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
 
 const asciiStateMap = ["·", "ı", "x"] as const;
 
-export const scoreSubstance = (substance: Rule, target: Rule) => {
-    const t1 = parseTable(substance);
-    const t2 = parseTable(target);
+export const scoreSubstance = (
+    table1: ReadonlyArray<number>,
+    table2: ReadonlyArray<number>,
+) => {
     let score = 0;
-    for (let i = 0; i < t1.length; i++) {
-        score += t1[i] === t2[i] ? 1 : 0;
+    let f = 1;
+    for (let i = 0; i < table1.length; i++) {
+        if (table1[i] !== table2[i]) {
+            f = 1;
+        } else {
+            score += f;
+            f *= 3;
+        }
     }
     return score;
 };
@@ -42,7 +49,10 @@ export function SubstanceView({
         <LinkCaPreview substance={substance} />
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
-        {scoreTarget && <>&nbsp;/&nbsp;{scoreSubstance(substance, scoreTarget).toString()}</>}
+        {scoreTarget && <>&nbsp;/&nbsp;{scoreSubstance(
+            parseTable(substance),
+            parseTable(scoreTarget),
+        ).toString()}</>}
     </span>;
 }
 
@@ -125,6 +135,7 @@ export const tickInPlace = (worldState: {
     }>,
 }, cTicks: number) => {
     const random01 = Math.random;
+    const se = 81 * 81 * 3;
 
     const newSoup = [] as Array<{
         rule: Rule,
@@ -139,7 +150,7 @@ export const tickInPlace = (worldState: {
             worldState.creatures.push({
                 rule,
                 _ruleTable: parseTable(rule),
-                energy: 27,
+                energy: se,
                 seed: 0,
             });
         }
@@ -151,16 +162,34 @@ export const tickInPlace = (worldState: {
             ? _ct
             : Math.floor(random01() * worldState.creatures.length);
         const c = worldState.creatures[i];
-        const s = worldState.soup.shift();
+
+        let s = worldState.soup[0];
+        if (s) {
+
+            for (let j = 1; j < Math.min(worldState.soup.length, 81); j++) {
+                const sj = worldState.soup[j];
+                const score1 = scoreSubstance(c._ruleTable, s._ruleTable);
+                const score2 = scoreSubstance(c._ruleTable, sj._ruleTable);
+                if (score2 > score1) {
+                    s = sj;
+                }
+            }
+            worldState.soup.splice(worldState.soup.indexOf(s), 1);
+        }
+
         let score = 0;
+        let f = 1;
         if (s) {
             const sTable = s._ruleTable;
             const cTable = c._ruleTable;
             const eTable = [...sTable];
             for (let i = 0; i < eTable.length; i++) {
                 if (sTable[i] === cTable[i]) {
-                    score++;
-                    eTable[i] = (sTable[i] + (1 + c.seed % 2)) % 3;
+                    score += f;
+                    f *= 3;
+                    eTable[i] = (sTable[i] + 1 + (c.seed % 2)) % 3;
+                } else {
+                    f = 1;
                 }
             }
             newSoup.push({
@@ -168,26 +197,30 @@ export const tickInPlace = (worldState: {
                 _ruleTable: eTable,
             });
         }
-        c.energy += score - 28;
-        if (c.energy > 81 * 4) {
+        c.energy += score - se / 3;
+        if (c.energy > se * 81) {
             worldState.creatures.push({
                 rule: c.rule,
                 _ruleTable: c._ruleTable,
-                energy: 81,
+                energy: se,
                 seed: c.seed + 1,
             });
             worldState.creatures.push({
                 rule: c.rule,
                 _ruleTable: c._ruleTable,
-                energy: 81,
+                energy: se,
                 seed: c.seed + 2,
             });
-            c.energy -= 81 * 3;
+            c.energy -= se * 72;
         } else if (c.energy <= 0) {
             worldState.creatures.splice(i, 1);
+            const eTable = [...c._ruleTable];
+            for (let i = 0; i < eTable.length; i++) {
+                eTable[i] = (eTable[i] + 1 + (c.seed % 2)) % 3;
+            }
             newSoup.push({
-                rule: c.rule,
-                _ruleTable: c._ruleTable,
+                rule: keyifyTable(eTable),
+                _ruleTable: eTable,
             });
         }
     }
@@ -217,7 +250,7 @@ export default function Component() {
         let h: ReturnType<typeof setTimeout>;
         const tick = () => {
             for (let i = 0; i < 1; i++) {
-                tickInPlace(world, 50);
+                tickInPlace(world, 1000);
             }
             setRenderTrigger(renderTrigger => renderTrigger + 1);
             h = setTimeout(tick, 20);
@@ -261,7 +294,7 @@ export default function Component() {
             <br />
             t: {world.t} / tt: {world.tt}
             <br />
-            <JsonButton obj={world} name="world" />
+            <JsonButton obj={world} name="world" doNotPrerenderTitle />
             <br />
             creatures ({creaturesCount}):
             {creaturesStatsSorted
