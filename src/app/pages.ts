@@ -10,3 +10,4 @@ export { default as nb_nb_2023_08_03_convo1 } from "../nb/nb-2023-08-03-convo1";
 export { default as nb_nb_2023_08_07_reactor_game } from "../nb/nb-2023-08-07-reactor-game";
 export { default as nb_nb_2023_08_09_reactor_game } from "../nb/nb-2023-08-09-reactor-game";
 export { default as nb_nb_2023_08_13_reactor_game } from "../nb/nb-2023-08-13-reactor-game";
+export { default as nb_nb_2023_08_15_reactor_game } from "../nb/nb-2023-08-15-reactor-game";
