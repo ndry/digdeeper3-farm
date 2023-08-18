@@ -1,6 +1,6 @@
-import { Rule, parseTable } from "../../ca237v1/rule-io";
-import { sLeftOne, sShiftRight, sSum } from "./hypothetical-substances";
-import { rrr } from "./run-reactor";
+import { Rule, parseTable } from "../../../ca237v1/rule-io";
+import { sLeftOne, sShiftRight, sSum } from "../hypothetical-substances";
+import { rrr } from "../run-reactor";
 
 
 export function createAutoRecipe(from: Rule, to: Rule) {

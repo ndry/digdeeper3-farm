@@ -8,7 +8,7 @@ import { JsonButton } from "../nb-2023-08-13-reactor-game/json-button";
 import { Rule, keyifyTable, parseTable } from "../../ca237v1/rule-io";
 import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
 import { stateCount } from "../../ca237v1/state-count";
-import { createAutoRecipe } from "../nb-2023-08-13-reactor-game/create-auto-recipe";
+import { createAutoRecipe } from "../nb-2023-08-13-reactor-game/recipes/create-auto-recipe";
 import { s0 } from "../nb-2023-08-13-reactor-game/s0";
 import { ca237v1FromSeed } from "../nb-2023-08-13-reactor-game/ca237v1-from-seed";
 import { rrr } from "../nb-2023-08-13-reactor-game/run-reactor";

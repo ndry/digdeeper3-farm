@@ -14,7 +14,10 @@
     "files": [
         "./node_modules/vite/client.d.ts", 
         "vite.config/app-version-plugin/client.d.ts",
-        "./node_modules/@rauschma/iterator-helpers-polyfill/dist/src/install.d.ts"
+        "./node_modules/@rauschma/iterator-helpers-polyfill/dist/src/install.d.ts",
+        "./src/nb/nb-2023-08-13-reactor-game/createSingleOneAt60Substance.tsx",
+        "./src/nb/nb-2023-08-13-reactor-game/createAutoRecipe60.tsx",
+        "./src/nb/nb-2023-08-13-reactor-game/createShiftSingleOneRightSubstance.tsx"
     ],
     "include": ["./src/"],
     "exclude": ["./vite.config/"]
