@@ -15,23 +15,109 @@ import { rrr } from "../nb-2023-08-13-reactor-game/run-reactor";
 import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
 
 
+// a creature spontaneously emerges from soup
+// a creature eats soup
+// a creature reproduces
+// a creature dies
+
+// the energy is not conserved
+// the quantity of soup+creatures is conserved
+
+
+export type Creature = {
+    rule: Rule,
+    _ruleTable: ReadonlyArray<number>,
+    energy: number,
+    _reagentTables: []
+    | [ReadonlyArray<number>]
+    | [ReadonlyArray<number>, ReadonlyArray<number>],
+}
+
+const se = 81 * 3;
+export const createCreature = (rule: Rule): Creature => ({
+    rule,
+    _ruleTable: parseTable(rule),
+    energy: se,
+    _reagentTables: [],
+});
+
+export const tickCreatureInPlace = (
+    creature: Creature,
+    world: {
+        creatures: Array<Creature>,
+        soup: Array<{ rule: Rule, _ruleTable: ReadonlyArray<number> }>,
+    },
+    newSoup: Array<{ rule: Rule, _ruleTable: ReadonlyArray<number> }>,
+) => {
+    creature.energy -= 47;
+
+    if (!creature._reagentTables[0]) {
+        const s = world.soup.shift()!;
+        if (s) { creature._reagentTables[0] = s._ruleTable; }
+    } else if (!creature._reagentTables[1]) {
+        const s = world.soup.shift()!;
+        if (s) { creature._reagentTables[1] = s._ruleTable; }
+    } else {
+        const table = creature._ruleTable;
+        const prevSpace = creature._reagentTables[0];
+        const space = creature._reagentTables[1];
+        const nextSpace = space.map((_, x) => table[getFullCombinedState(
+            stateCount,
+            space.at(x - 1)!,
+            space[x],
+            space.at(x - space.length + 1)!,
+            prevSpace[x])]);
+
+        const c = countCellMatches(space, nextSpace);
+        if (c <= 27) {
+            creature.energy += c * 2;
+        } else {
+            creature.energy += (81 - c);
+        }
+
+        creature._reagentTables[0] = space;
+        creature._reagentTables[1] = nextSpace;
+    }
+
+    if (creature._reagentTables[1]) {
+        const s = creature._reagentTables[1];
+        const c = countCellMatches(creature._ruleTable, s);
+        const energyToReproduce = se + c;
+        if (creature.energy >= se + energyToReproduce) {
+            creature.energy -= energyToReproduce;
+            world.creatures.push(createCreature(creature.rule));
+            creature._reagentTables.pop();
+        }
+    }
+
+
+    if (creature.energy < 0) {
+        newSoup.push({
+            rule: creature.rule, _ruleTable: creature._ruleTable,
+        });
+        if (creature._reagentTables[0]) {
+            const t = creature._reagentTables[0];
+            newSoup.push({ rule: keyifyTable(t), _ruleTable: t });
+        }
+        if (creature._reagentTables[1]) {
+            const t = creature._reagentTables[1];
+            newSoup.push({ rule: keyifyTable(t), _ruleTable: t });
+        }
+        world.creatures.splice(world.creatures.indexOf(creature), 1);
+    }
+};
+
 const asciiStateMap = ["·", "ı", "x"] as const;
 
-export const scoreSubstance = (
+export const countCellMatches = (
     table1: ReadonlyArray<number>,
     table2: ReadonlyArray<number>,
 ) => {
-    let score = 0;
-    let f = 1;
+    let counter = 0;
     for (let i = 0; i < table1.length; i++) {
-        if (table1[i] !== table2[i]) {
-            f = 1;
-        } else {
-            score += f;
-            f *= 3;
-        }
+        if (table1[i] === table2[i]) { counter++; }
     }
-    return score;
+    return counter;
 };
 
 export function SubstanceView({
@@ -49,7 +135,7 @@ export function SubstanceView({
         <LinkCaPreview substance={substance} />
         &nbsp;/&nbsp;
         {parseTable(substance).map(d => asciiStateMap[d])}
-        {scoreTarget && <>&nbsp;/&nbsp;{scoreSubstance(
+        {scoreTarget && <>&nbsp;/&nbsp;{countCellMatches(
             parseTable(substance),
             parseTable(scoreTarget),
         ).toString()}</>}
@@ -102,19 +188,15 @@ export function ReactionView({
     </div>;
 }
 
+
 export const createWorld = ({
     soup,
 }: {
     soup: Rule[],
-}) => ({
+}): Parameters<typeof tickInPlace>[0] => ({
     t: 0,
     tt: 0,
-    creatures: [] as Array<{
-        rule: Rule,
-        _ruleTable: ReadonlyArray<number>,
-        energy: number,
-        seed: number,
-    }>,
+    creatures: [],
     soup: soup.map(s => ({
         rule: s,
         _ruleTable: parseTable(s),
@@ -123,12 +205,7 @@ export const createWorld = ({
 export const tickInPlace = (worldState: {
     t: number;
     tt: number;
-    creatures: Array<{
-        rule: Rule,
-        _ruleTable: ReadonlyArray<number>,
-        energy: number,
-        seed: number,
-    }>,
+    creatures: Array<Creature>,
     soup: Array<{
         rule: Rule,
         _ruleTable: ReadonlyArray<number>,
@@ -145,14 +222,9 @@ export const tickInPlace = (worldState: {
     const _cTicks = Math.min(cTicks, worldState.creatures.length);
 
     if (random01() < (_cTicks + 1) / (worldState.creatures.length + 1)) {
-        if (worldState.soup.shift()) {
-            const rule = ca237v1FromSeed(SHA256("rule." + worldState.t));
-            worldState.creatures.push({
-                rule,
-                _ruleTable: parseTable(rule),
-                energy: se,
-                seed: 0,
-            });
+        const s = worldState.soup.shift();
+        if (s) {
+            worldState.creatures.push(createCreature(s.rule));
         }
     }
 
@@ -162,67 +234,7 @@ export const tickInPlace = (worldState: {
             ? _ct
             : Math.floor(random01() * worldState.creatures.length);
         const c = worldState.creatures[i];
-
-        let s = worldState.soup[0];
-        if (s) {
-
-            for (let j = 1; j < Math.min(worldState.soup.length, 81); j++) {
-                const sj = worldState.soup[j];
-                const score1 = scoreSubstance(c._ruleTable, s._ruleTable);
-                const score2 = scoreSubstance(c._ruleTable, sj._ruleTable);
-                if (score2 > score1) {
-                    s = sj;
-                }
-            }
-            worldState.soup.splice(worldState.soup.indexOf(s), 1);
-        }
-
-        let score = 0;
-        let f = 1;
-        if (s) {
-            const sTable = s._ruleTable;
-            const cTable = c._ruleTable;
-            const eTable = [...sTable];
-            for (let i = 0; i < eTable.length; i++) {
-                if (sTable[i] === cTable[i]) {
-                    score += f;
-                    f *= 3;
-                    eTable[i] = (sTable[i] + 1 + (c.seed % 2)) % 3;
-                } else {
-                    f = 1;
-                }
-            }
-            newSoup.push({
-                rule: keyifyTable(eTable),
-                _ruleTable: eTable,
-            });
-        }
-        c.energy += score - se / 3;
-        if (c.energy > se * 81) {
-            worldState.creatures.push({
-                rule: c.rule,
-                _ruleTable: c._ruleTable,
-                energy: se,
-                seed: c.seed + 1,
-            });
-            worldState.creatures.push({
-                rule: c.rule,
-                _ruleTable: c._ruleTable,
-                energy: se,
-                seed: c.seed + 2,
-            });
-            c.energy -= se * 72;
-        } else if (c.energy <= 0) {
-            worldState.creatures.splice(i, 1);
-            const eTable = [...c._ruleTable];
-            for (let i = 0; i < eTable.length; i++) {
-                eTable[i] = (eTable[i] + 1 + (c.seed % 2)) % 3;
-            }
-            newSoup.push({
-                rule: keyifyTable(eTable),
-                _ruleTable: eTable,
-            });
-        }
+        tickCreatureInPlace(c, worldState, newSoup);
     }
     worldState.soup.push(...newSoup);
 
