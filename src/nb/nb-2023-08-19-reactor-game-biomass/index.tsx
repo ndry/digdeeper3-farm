@@ -49,7 +49,7 @@ export const tickCreatureInPlace = (
     },
     newSoup: Array<{ rule: Rule, _ruleTable: ReadonlyArray<number> }>,
 ) => {
-    creature.energy -= 47;
+    creature.energy -= 50;
 
     if (!creature._reagentTables[0]) {
         const s = world.soup.shift()!;
@@ -246,6 +246,8 @@ export const tickInPlace = (worldState: {
     }
 
     worldState.t++;
+
+    return _cTicks;
 };
 
 const isPausedParam = !!(new URLSearchParams(location.search).get("paused"));
@@ -261,8 +263,9 @@ export default function Component() {
         if (isPaused) { return; }
         let h: ReturnType<typeof setTimeout>;
         const tick = () => {
-            for (let i = 0; i < 1; i++) {
-                tickInPlace(world, 1000);
+            const tc = 20_000;
+            for (let i = 0; i < tc;) {
+                i += tickInPlace(world, tc);
             }
             setRenderTrigger(renderTrigger => renderTrigger + 1);
             h = setTimeout(tick, 20);
