@@ -13,6 +13,7 @@ import { s0 } from "../nb-2023-08-13-reactor-game/s0";
 import { ca237v1FromSeed } from "../nb-2023-08-13-reactor-game/ca237v1-from-seed";
 import { rrr } from "../nb-2023-08-13-reactor-game/run-reactor";
 import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
+import { countCellMatches } from "./countCellMatches";
 
 
 // a creature spontaneously emerges from soup
@@ -108,17 +109,6 @@ export const tickCreatureInPlace = (
 };
 
 const asciiStateMap = ["·", "ı", "x"] as const;
-
-export const countCellMatches = (
-    table1: ReadonlyArray<number>,
-    table2: ReadonlyArray<number>,
-) => {
-    let counter = 0;
-    for (let i = 0; i < table1.length; i++) {
-        if (table1[i] === table2[i]) { counter++; }
-    }
-    return counter;
-};
 
 export function SubstanceView({
     substance,
