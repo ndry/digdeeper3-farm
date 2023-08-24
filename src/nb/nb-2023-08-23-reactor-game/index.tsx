@@ -5,9 +5,7 @@ import update from "immutability-helper";
 import { HmacSHA256, SHA256, enc } from "crypto-js";
 import { jsx } from "@emotion/react";
 import { JsonButton } from "../nb-2023-08-13-reactor-game/json-button";
-import { Rule, keyifyTable, parseTable } from "../../ca237v1/rule-io";
-import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
-import { stateCount } from "../../ca237v1/state-count";
+import { Rule, parseTable } from "../../ca237v1/rule-io";
 import { createAutoRecipe } from "../nb-2023-08-13-reactor-game/recipes/create-auto-recipe";
 import { s0 } from "../nb-2023-08-13-reactor-game/s0";
 import { ca237v1FromSeed } from "../nb-2023-08-13-reactor-game/ca237v1-from-seed";
@@ -16,7 +14,7 @@ import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
 import { createAutoRecipe60 } from "../nb-2023-08-13-reactor-game/recipes/create-auto-recipe-60";
 import { createSingleOneAt60Substance } from "../nb-2023-08-13-reactor-game/recipes/create-single-one-at-60-substance";
 import { createShiftSingleOneRightSubstance } from "../nb-2023-08-13-reactor-game/recipes/create-shift-single-one-right-substance";
-import { countCellMatches } from "../nb-2023-08-19-reactor-game-biomass/countCellMatches";
+import { ReactionView } from "./reaction-view";
 
 const asciiStateMap = ["·", "ı", "x"] as const;
 
@@ -36,71 +34,6 @@ export function SubstanceView({
         {parseTable(substance).map(d => asciiStateMap[d])}
     </span>;
 }
-
-const scoreSubstance = (table: number[], targetTable: number[]) => {
-    const c1 = countCellMatches(table, targetTable);
-    const t1 = [...targetTable];
-    t1.push(t1.shift()!);
-    const c2 = countCellMatches(table, t1);
-    const t2 = [...targetTable];
-    t2.unshift(t2.pop()!);
-    const c3 = countCellMatches(table, t2);
-    const cMax = Math.max(c1, c2, c3);
-    if (cMax >= 63) { return -1; }
-    const cMin = Math.min(c1, c2, c3);
-    if (cMin <= 36) { return -1; }
-    return 1;
-}
-
-export function ReactionView({
-    rule, reagent1, reagent2, t,
-}: {
-    rule: Rule, reagent1: Rule, reagent2: Rule, t: number,
-}) {
-    const table = parseTable(rule);
-    const spacetime = [
-        parseTable(reagent1),
-        parseTable(reagent2),
-    ];
-
-    while (spacetime.length < t + 2) {
-        const prevSpace = spacetime[spacetime.length - 2];
-        const space = spacetime[spacetime.length - 1];
-        const nextSpace = space.map((_, x) => table[getFullCombinedState(
-            stateCount,
-            space.at(x - 1)!,
-            space[x],
-            space.at(x - space.length + 1)!,
-            prevSpace[x])]);
-        spacetime.push(nextSpace);
-    }
-    let acc = 0;
-
-    return <div
-        css={{
-            border: "1px solid #00ff0044",
-            padding: "0.5em",
-        }}
-    >
-
-        Reaction: <br />
-        &#x2B4D;<SubstanceView substance={rule} />
-        <br />
-        <br />
-        {spacetime.map((space, i) => <div key={i}>
-            &#x269B;
-            &nbsp;{(i - 1).toString().padStart(3, ".")}&nbsp;
-            <SubstanceView
-                substance={keyifyTable(space)}
-            />
-            &nbsp;/&nbsp;
-            {i > 1 && scoreSubstance(space, spacetime[i - 1])}
-            &nbsp;/&nbsp;
-            {i > 1 && (acc += scoreSubstance(space, spacetime[i - 1]))}
-        </div>)}
-    </div>;
-}
-
 
 // sum mod 3:
 // ···ıııxxx···ıııxxx···ıııxxxıııxxx···ıııx\
@@ -142,7 +75,7 @@ export default function Component() {
             <JsonButton name="x" obj={x} />
             {x.map((reaction, i) => <ReactionView
                 key={i}
-                {...reaction}
+                reaction={reaction}
             />)}
         </div >
     );
