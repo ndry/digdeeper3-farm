@@ -2,6 +2,7 @@ import { ForwardedRef, RefObject, forwardRef, useLayoutEffect, useMemo, useRef }
 import type { jsx } from "@emotion/react";
 import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
 import { getEnergyDelta } from "./get-energy-delta";
+import { ReactionRun } from "./reaction";
 
 export const colorMap = [
     "#ff0000",
@@ -9,14 +10,14 @@ export const colorMap = [
     "#0000ff",
 ] as const;
 
-export const SpacetimeCanvas = forwardRef((
+export const ReactionCanvas = forwardRef((
     {
-        spacetime,
+        reactionRun,
         onSpaceSelected,
         css: cssProp,
         ...props
     }: {
-        spacetime: number[][],
+        reactionRun: ReactionRun,
         onSpaceSelected?: (t: number) => void,
     } & jsx.JSX.IntrinsicElements["canvas"],
     ref: ForwardedRef<HTMLCanvasElement>,
@@ -36,6 +37,8 @@ export const SpacetimeCanvas = forwardRef((
         const canvasEl = innerRef.current;
         if (!canvasEl) { return; }
 
+        const spacetime = reactionRun.spacetimeExtended.map(x => x.space);
+
         const w = spacetime.length;
         const h = spacetime[0].length + 5;
         const pixelsPerCell = 1;
@@ -53,13 +56,23 @@ export const SpacetimeCanvas = forwardRef((
             }
         }
         for (let x = 2; x < spacetime.length; x++) {
-            const energyDelta = getEnergyDelta(spacetime[x], spacetime[x - 1]);
-            const color = energyDelta > 0
-                ? "#00ff00"
-                : energyDelta === 0
-                    ? "#ffff00"
-                    : "#ff0000";
-            setPixel(x, spacetime[0].length + 1, color);
+            const space = reactionRun.spacetimeExtended[x];
+            setPixel(
+                x,
+                spacetime[0].length + 1,
+                space.energyDelta > 0
+                    ? "#00ff00"
+                    : space.energyDelta === 0
+                        ? "#ffff00"
+                        : "#ff0000");
+            setPixel(
+                x,
+                spacetime[0].length + 2,
+                space.energySubtotal > 0
+                    ? "#00ff00"
+                    : space.energySubtotal === 0
+                        ? "#ffff00"
+                        : "#ff0000");
 
         }
 
@@ -73,7 +86,7 @@ export const SpacetimeCanvas = forwardRef((
             0, 0, canvasEl.width / scale, canvasEl.height / scale,
             0, 0, canvasEl.width, canvasEl.height);
 
-    }, [spacetime]);
+    }, [reactionRun]);
 
     return <canvas
         ref={setRef}

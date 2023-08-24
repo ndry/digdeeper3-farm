@@ -1,8 +1,8 @@
 import { keyifyTable, parseTable } from "../../ca237v1/rule-io";
 import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
 import { stateCount } from "../../ca237v1/state-count";
-import { SpacetimeCanvas } from "./spacetime-canvas";
-import { Reaction, generateReactionSpacetime } from "./reaction";
+import { ReactionCanvas } from "./reaction-canvas";
+import { Reaction, generateReactionSpacetime, runReaction } from "./reaction";
 import { getEnergyDelta } from "./get-energy-delta";
 import { SubstanceView } from ".";
 import { useMemo, useState } from "react";
@@ -15,9 +15,8 @@ export function ReactionView({
     reaction: Reaction;
 }) {
     const { rule, reagent1, reagent2, t } = reaction;
-    const spacetime = useMemo(
-        () => generateReactionSpacetime(reaction),
-        [reaction]);
+    const reactionRun = useMemo(() => runReaction(reaction), [reaction]);
+    const spacetime = reactionRun.spacetime;
 
     const [selectedSpace, setSelectedSpace] = useState(0);
 
@@ -25,7 +24,7 @@ export function ReactionView({
         Math.min(
             Math.max(0, selectedSpace - 5),
             spacetime.length - 5 * 2 - 1);
-    const spacetimeToDisplay = spacetime.slice(
+    const spacetimeToDisplay = reactionRun.spacetimeExtended.slice(
         selectionStart,
         selectionStart + 5 * 2 + 1);
 
@@ -39,7 +38,8 @@ export function ReactionView({
         }}
     >
 
-        Reaction: <br />
+        Reaction (E: {reactionRun.energyTotal}):
+        <br />
         | &#x2B4D;<SubstanceView substance={rule} />
         <br />
         | &#x269B;<SubstanceView substance={reagent1} />
@@ -60,11 +60,11 @@ export function ReactionView({
             &#x269B;
             &nbsp;{(i - 1 + selectionStart).toString().padStart(3, ".")}&nbsp;
             <SubstanceView
-                substance={keyifyTable(space)} />
+                substance={keyifyTable(space.space)} />
             &nbsp;/&nbsp;
-            {i > 1 && getEnergyDelta(space, spacetimeToDisplay[i - 1])}
+            {space.energyDelta}
             &nbsp;/&nbsp;
-            {/* {i > 1 && (acc += getEnergyDelta(space, spacetime[i - 1]))} */}
+            {space.energySubtotal}
         </div>)}
         <div
             css={{
@@ -72,9 +72,9 @@ export function ReactionView({
             }}
             title={jsonBeautify(reaction, null as any, 2, 80)}
         >
-            <SpacetimeCanvas
+            <ReactionCanvas
                 onSpaceSelected={t => setSelectedSpace(t)}
-                spacetime={spacetime}
+                reactionRun={reactionRun}
             />
         </div>
     </div>;

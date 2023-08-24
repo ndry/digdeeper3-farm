@@ -1,6 +1,7 @@
 import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
-import { Rule, parseTable } from "../../ca237v1/rule-io";
+import { Rule, keyifyTable, parseTable } from "../../ca237v1/rule-io";
 import { stateCount } from "../../ca237v1/state-count";
+import { getEnergyDelta } from "./get-energy-delta";
 
 
 export type Reaction = {
@@ -30,3 +31,30 @@ export function generateReactionSpacetime(reaction: Reaction) {
 
     return spacetime;
 }
+
+export function runReaction(reaction: Reaction) {
+    const spacetime = generateReactionSpacetime(reaction);
+    let energyTotal = 0;
+    const spacetimeExtended = spacetime.map((space, i) => {
+        const energyDelta =
+            i < 2 ? 0 : getEnergyDelta(space, spacetime[i - 1]);
+        energyTotal += energyDelta;
+        return {
+            space,
+            energyDelta,
+            energySubtotal: energyTotal,
+        };
+    });
+    return {
+        reaction,
+        spacetime,
+        spacetimeExtended,
+        energyTotal,
+        products: {
+            rule: reaction.rule,
+            reagent1: keyifyTable(spacetime[spacetime.length - 2]),
+            reagent2: keyifyTable(spacetime[spacetime.length - 1]),
+        },
+    };
+}
+export type ReactionRun = ReturnType<typeof runReaction>;
