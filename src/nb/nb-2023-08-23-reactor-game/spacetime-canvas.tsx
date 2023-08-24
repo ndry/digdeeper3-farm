@@ -1,6 +1,7 @@
 import { ForwardedRef, RefObject, forwardRef, useLayoutEffect, useMemo, useRef } from "react";
 import type { jsx } from "@emotion/react";
 import { createFullCanvasImageData32 } from "../../utils/create-image-data32";
+import { getEnergyDelta } from "./get-energy-delta";
 
 export const colorMap = [
     "#ff0000",
@@ -36,7 +37,7 @@ export const SpacetimeCanvas = forwardRef((
         if (!canvasEl) { return; }
 
         const w = spacetime.length;
-        const h = spacetime[0].length;
+        const h = spacetime[0].length + 5;
         const pixelsPerCell = 1;
         canvasEl.width = w * pixelsPerCell;
         canvasEl.height = h * pixelsPerCell;
@@ -46,10 +47,20 @@ export const SpacetimeCanvas = forwardRef((
             setPixel,
         } = createFullCanvasImageData32(canvasEl);
 
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
+        for (let y = 0; y < spacetime[0].length; y++) {
+            for (let x = 0; x < spacetime.length; x++) {
                 setPixel(x, y, colorMap[spacetime[x][y]]);
             }
+        }
+        for (let x = 2; x < spacetime.length; x++) {
+            const energyDelta = getEnergyDelta(spacetime[x], spacetime[x - 1]);
+            const color = energyDelta > 0
+                ? "#00ff00"
+                : energyDelta === 0
+                    ? "#ffff00"
+                    : "#ff0000";
+            setPixel(x, spacetime[0].length + 1, color);
+
         }
 
         canvasEl.width *= scale;
