@@ -52,8 +52,8 @@ export default function Component() {
     const x = useMemo(() => {
         const log = [] as Parameters<typeof rrr>[0];
 
-        const t0 = rrr(log, s0, s0, s0, 25);
-        const t1 = rrr(log, t0, s0, s0, 10000);
+        const t0 = rrr(log, s0, s0, s0, 962);
+        const t1 = rrr(log, t0, t0, t0, 1000);
 
         return log;
     }, [target]);
