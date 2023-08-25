@@ -128,8 +128,8 @@ export default function Component() {
         }, retroThemeCss]}>
             Hello World from {import.meta.url}
             <br />
-            {rules.map((x, i) => <div>
-                <RuleView name={x.seed} key={i} {...x} />
+            {rules.map((x1, i) => <div>
+                <RuleView name={x1.seed} key={i} {...x1} />
             </div>)}
         </div >
     );
