@@ -13,3 +13,4 @@ export { default as nb_nb_2023_08_13_reactor_game } from "../nb/nb-2023-08-13-re
 export { default as nb_nb_2023_08_15_reactor_game_biomass } from "../nb/nb-2023-08-15-reactor-game-biomass";
 export { default as nb_nb_2023_08_19_reactor_game_biomass } from "../nb/nb-2023-08-19-reactor-game-biomass";
 export { default as nb_nb_2023_08_23_reactor_game } from "../nb/nb-2023-08-23-reactor-game";
+export { default as nb_nb_2023_08_25_reactor_game } from "../nb/nb-2023-08-25-reactor-game";
