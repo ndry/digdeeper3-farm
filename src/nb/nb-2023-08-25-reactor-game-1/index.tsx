@@ -126,12 +126,15 @@ export function RuleView({
     </div>;
 }
 
+const runByDefault = new URL(location.href).searchParams.get("run") == "1";
+
 export default function Component() {
     const [renderTrigger, setRenderTrigger] = useState(0);
+    const [isRunning, setIsRunning] = useState(runByDefault);
 
-    const rootSeed = "target." + 0;
+    const rootSeed = "target." + 1;
     const rules = useMemo(
-        () => Array.from({ length: 100 }, (_, i) => {
+        () => Array.from({ length: 10 }, (_, i) => {
             const seed = rootSeed + "." + i;
             const rule = ca237v1FromSeed(SHA256(seed));
             const plant = createPlantState(rule);
@@ -145,17 +148,19 @@ export default function Component() {
     );
 
     useLayoutEffect(() => {
+        if (!isRunning) { return; }
+
         let h: ReturnType<typeof setTimeout> | undefined;
         const tick = () => {
             for (const { plant } of rules) {
-                updatePlantStateInPlace(plant, 1000 / 60);
+                updatePlantStateInPlace(plant, 10000);
             }
             setRenderTrigger(x => x + 1);
-            h = setTimeout(tick, 1);
+            h = setTimeout(tick, 1000);
         };
         tick();
         return () => { clearTimeout(h); };
-    }, [rules]);
+    }, [rules, isRunning]);
 
     const sortedRules = [...rules].sort((a, b) =>
     ((a.plant.firstRepeatAt ?? Infinity)
@@ -169,6 +174,10 @@ export default function Component() {
             padding: "1em",
         }, retroThemeCss]}>
             Hello World from {import.meta.url}
+            <br />
+            <button onClick={() => setIsRunning(x => !x)}>
+                {isRunning ? "pause" : "run"}
+            </button>
             <br />
             renderTrigger: {renderTrigger}
             <br />
