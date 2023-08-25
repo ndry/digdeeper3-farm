@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
 import { SHA256 } from "crypto-js";
 import { jsx } from "@emotion/react";
@@ -7,6 +7,7 @@ import { ca237v1FromSeed } from "../nb-2023-08-13-reactor-game/ca237v1-from-seed
 import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
 import { createImageData32, cssColorToAbgr } from "../../utils/create-image-data32";
 import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
+import { Reaction } from "../nb-2023-08-23-reactor-game/reaction";
 
 const start0 = ca237v1FromSeed(SHA256("start0"));
 const start1 = ca237v1FromSeed(SHA256("start1"));
@@ -17,88 +18,89 @@ const colorMap = [
     cssColorToAbgr("#0000ff"),
 ];
 
-export function calcutateRule(rule: Rule) {
-    const spaceSet = new Set<Rule>([start0, start1]);
-    let firstRepeatAt = Infinity;
 
-    const stats1x1 = Array.from({ length: 3 }, () => 0);
-    const stats2x1 = Array.from({ length: 3 ** 2 }, () => 0);
-
-    const tCap = 2000;
-
-    const imageData = new ImageData(tCap, 81);
+export function createPlantState(rule: Rule) {
+    const imageData = new ImageData(500, 81);
     const imageData32 = createImageData32(imageData);
+    return {
+        seed: {
+            rule,
+            s0: start0,
+            s1: start1,
+        },
+        imageData,
+        imageData32,
+        t: 2,
+        sSet: new Set<Rule>([start0, start1]),
+        table: parseTable(rule),
+        spacetime: [
+            parseTable(start0),
+            parseTable(start1),
+        ],
+        firstRepeatAt: undefined as number | undefined,
+    };
+}
+type PlantState = ReturnType<typeof createPlantState>;
 
-    const table = parseTable(rule);
-    let prevPrev = parseTable(start0);
-    let prev = parseTable(start1);
+export function updatePlantStateInPlace(state: PlantState, dt: number) {
+    if (state.firstRepeatAt !== undefined) { return; }
 
-    for (let x = 0; x < prevPrev.length; x++) {
-        imageData32.setPixelAbgr(0, x, colorMap[prevPrev[x]]);
-        imageData32.setPixelAbgr(1, x, colorMap[prev[x]]);
-    }
-
-    let space = prev.map(() => 0);
-    for (let t = 2; t < tCap; t++) {
+    const t1 = state.t + dt;
+    while (state.t < t1) {
+        const prevPrev = state.spacetime[state.spacetime.length - 2];
+        const prev = state.spacetime[state.spacetime.length - 1];
+        const space = prev.map(() => 0);
         for (let x = 0; x < prev.length; x++) {
-            space[x] = table[getFullCombinedState(
+            space[x] = state.table[getFullCombinedState(
                 3,
                 prev[(x - 1 + prev.length) % prev.length],
                 prev[x],
                 prev[(x + 1) % prev.length],
                 prevPrev[x],
             )];
-            imageData32.setPixelAbgr(t, x,
-                t === firstRepeatAt + 1 ? 0 : colorMap[space[x]]);
-            stats1x1[space[x]]++;
-            stats2x1[prev[x] * 3 + space[x]]++;
         }
 
-        const r = keyifyTable(space);
-        if (spaceSet.has(r)) {
-            if (t < firstRepeatAt) {
-                firstRepeatAt = t;
+        if (state.firstRepeatAt === undefined) {
+            const r = keyifyTable(space);
+            if (state.sSet.has(r)) {
+                state.firstRepeatAt = state.t;
+            } else {
+                state.sSet.add(r);
             }
-        } else {
-            spaceSet.add(r);
         }
-
-        [prevPrev, prev, space] = [prev, space, prevPrev];
+        state.spacetime.push(space);
+        while (state.spacetime.length > state.imageData.width) {
+            state.spacetime.shift();
+        }
+        state.t++;
     }
 
-    let minStats2x1Diff = Infinity;
-    for (let i = 0; i < stats2x1.length; i++) {
-        for (let j = i + 1; j < stats2x1.length; j++) {
-            minStats2x1Diff = Math.min(
-                minStats2x1Diff,
-                Math.abs(stats2x1[i] - stats2x1[j]));
+    const t0 = state.t - state.spacetime.length;
+    for (let t = 0; t < state.spacetime.length; t++) {
+        for (let x = 0; x < state.spacetime[t].length; x++) {
+            const color =
+                (state.firstRepeatAt !== undefined
+                    && t === state.firstRepeatAt - t0 + 1)
+                    ? 0
+                    : colorMap[state.spacetime[t][x]];
+            state.imageData32.setPixelAbgr(t, x, color);
         }
     }
-
-
-    return {
-        firstRepeatAt,
-        imageData,
-        stats1x1,
-        stats2x1,
-        minStats2x1Diff,
-    };
 }
 
 export function RuleView({
     name,
     rule,
-    imageData,
-    firstRepeatAt,
-    stats1x1,
-    stats2x1,
-    minStats2x1Diff,
+    plant,
     ...props
-}: jsx.JSX.IntrinsicElements["div"] & ReturnType<typeof calcutateRule> & {
+}: jsx.JSX.IntrinsicElements["div"] & {
     name: string,
     rule: Rule,
+    plant: PlantState,
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const imageData = plant.imageData;
+    const firstRepeatAt = plant.firstRepeatAt;
 
     useLayoutEffect(() => {
         const canvasEl = canvasRef.current;
@@ -108,19 +110,15 @@ export function RuleView({
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;
         ctx.putImageData(imageData, 0, 0);
-    }, [imageData]);
+    });
 
     return <div {...props}>
         {name}:
         <LinkCaPreview substance={rule} />
         &nbsp;/&nbsp;
-        minStats2x1Diff: {minStats2x1Diff}
-        &nbsp;/&nbsp;
         firstRepeatAt: {firstRepeatAt}
         &nbsp;/&nbsp;
-        {stats2x1.join(",")}
-        &nbsp;/&nbsp;
-        {stats1x1.join(",")}
+        t: {plant.t}
         <br />
         <canvas
             ref={canvasRef}
@@ -129,23 +127,39 @@ export function RuleView({
 }
 
 export default function Component() {
+    const [renderTrigger, setRenderTrigger] = useState(0);
+
     const rootSeed = "target." + 0;
     const rules = useMemo(
         () => Array.from({ length: 100 }, (_, i) => {
             const seed = rootSeed + "." + i;
             const rule = ca237v1FromSeed(SHA256(seed));
-            const calc = calcutateRule(rule);
+            const plant = createPlantState(rule);
             return {
                 rule,
                 seed,
-                ...calc,
+                plant,
             };
-        }).sort((a, b) =>
-            (b.minStats2x1Diff - a.minStats2x1Diff)
-            || (a.firstRepeatAt - b.firstRepeatAt)),
+        }),
         [rootSeed],
     );
 
+    useLayoutEffect(() => {
+        let h: ReturnType<typeof setTimeout> | undefined;
+        const tick = () => {
+            for (const { plant } of rules) {
+                updatePlantStateInPlace(plant, 1000 / 60);
+            }
+            setRenderTrigger(x => x + 1);
+            h = setTimeout(tick, 1);
+        };
+        tick();
+        return () => { clearTimeout(h); };
+    }, [rules]);
+
+    const sortedRules = [...rules].sort((a, b) =>
+    ((a.plant.firstRepeatAt ?? Infinity)
+        - (b.plant.firstRepeatAt ?? Infinity)));
 
     return (
         <div css={[{
@@ -156,7 +170,9 @@ export default function Component() {
         }, retroThemeCss]}>
             Hello World from {import.meta.url}
             <br />
-            {rules.map((x1, i) => <div>
+            renderTrigger: {renderTrigger}
+            <br />
+            {sortedRules.map((x1, i) => <div>
                 <RuleView name={x1.seed} key={i} {...x1} />
             </div>)}
         </div >
