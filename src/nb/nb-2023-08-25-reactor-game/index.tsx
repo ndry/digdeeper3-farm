@@ -21,6 +21,9 @@ export function calcutateRule(rule: Rule) {
     const spaceSet = new Set<Rule>([start0, start1]);
     let firstRepeatAt = Infinity;
 
+    const stats1x1 = Array.from({ length: 3 }, () => 0);
+    const stats2x1 = Array.from({ length: 3 ** 2 }, () => 0);
+
     const tCap = 2000;
 
     const imageData = new ImageData(tCap, 81);
@@ -47,6 +50,8 @@ export function calcutateRule(rule: Rule) {
             )];
             imageData32.setPixelAbgr(t, x,
                 t === firstRepeatAt + 1 ? 0 : colorMap[space[x]]);
+            stats1x1[space[x]]++;
+            stats2x1[prev[x] * 3 + space[x]]++;
         }
 
         const r = keyifyTable(space);
@@ -61,10 +66,22 @@ export function calcutateRule(rule: Rule) {
         [prevPrev, prev, space] = [prev, space, prevPrev];
     }
 
+    let minStats2x1Diff = Infinity;
+    for (let i = 0; i < stats2x1.length; i++) {
+        for (let j = i + 1; j < stats2x1.length; j++) {
+            minStats2x1Diff = Math.min(
+                minStats2x1Diff,
+                Math.abs(stats2x1[i] - stats2x1[j]));
+        }
+    }
+
 
     return {
         firstRepeatAt,
         imageData,
+        stats1x1,
+        stats2x1,
+        minStats2x1Diff,
     };
 }
 
@@ -73,6 +90,9 @@ export function RuleView({
     rule,
     imageData,
     firstRepeatAt,
+    stats1x1,
+    stats2x1,
+    minStats2x1Diff,
     ...props
 }: jsx.JSX.IntrinsicElements["div"] & ReturnType<typeof calcutateRule> & {
     name: string,
@@ -94,7 +114,13 @@ export function RuleView({
         {name}:
         <LinkCaPreview substance={rule} />
         &nbsp;/&nbsp;
+        minStats2x1Diff: {minStats2x1Diff}
+        &nbsp;/&nbsp;
         firstRepeatAt: {firstRepeatAt}
+        &nbsp;/&nbsp;
+        {stats2x1.join(",")}
+        &nbsp;/&nbsp;
+        {stats1x1.join(",")}
         <br />
         <canvas
             ref={canvasRef}
@@ -114,7 +140,9 @@ export default function Component() {
                 seed,
                 ...calc,
             };
-        }).sort((a, b) => a.firstRepeatAt - b.firstRepeatAt),
+        }).sort((a, b) =>
+            (b.minStats2x1Diff - a.minStats2x1Diff)
+            || (a.firstRepeatAt - b.firstRepeatAt)),
         [rootSeed],
     );
 
