@@ -75,6 +75,38 @@ export function CustomHashSet<T, THash>({
             }
         },
 
+        /**
+         * @returns true if the set size changed
+         *   (i.e. the element was in the set)
+         */
+        delete: (el: T) => {
+            const hash = hashFn(el);
+            const bucket = buckets.get(hash);
+            if (!bucket) { return false; }
+            if (isBucket(bucket)) {
+                for (let i = bucket.length - 1; i >= 0; i--) {
+                    if (equalsFn(el, bucket[i])) {
+                        bucket.splice(i, 1);
+                        size--;
+                        if (bucket.length === 1) {
+                            buckets.set(hash, bucket[0]);
+                        }
+                        if (bucket.length === 0) {
+                            buckets.delete(hash);
+                        }
+                        return true;
+                    }
+                }
+            } else {
+                if (equalsFn(el, bucket)) {
+                    buckets.delete(hash);
+                    size--;
+                    return true;
+                }
+            }
+            return false;
+        },
+
         filterInPlace: (fn: (el: T) => unknown) => {
             for (const [k, b] of buckets) {
                 if (isBucket(b)) {
