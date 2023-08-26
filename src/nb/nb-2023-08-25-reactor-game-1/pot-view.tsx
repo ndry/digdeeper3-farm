@@ -36,16 +36,28 @@ export function PotView({
         const ctx = canvasEl.getContext("2d");
         if (!ctx) { return; }
 
-        const t0 = plant.t - plant.spacetime.length;
-        for (let t = 0; t < plant.spacetime.length; t++) {
-            for (let x = 0; x < plant.spacetime[t].length; x++) {
-                const color = (plant.firstRepeatAt !== undefined
-                    && t === plant.firstRepeatAt - t0 + 1)
-                    ? 0
-                    : colorMap[plant.spacetime[t][x]];
+        if (plant.spacetime === undefined) { return; }
+        const offset = plant.spacetime.length - (plant.timeLen * 81);
+        for (let t = 0; t < plant.timeLen; t++) {
+            for (let x = 0; x < 81; x++) {
+                const color = colorMap[plant.spacetime[offset + t * 81 + x]];
                 imageData32.setPixelAbgr(t, x, color);
             }
         }
+
+
+
+
+        // const t0 = plant.t - plant.spacetime.length;
+        // for (let t = 0; t < plant.spacetime.length; t++) {
+        //     for (let x = 0; x < plant.spacetime[t].length; x++) {
+        //         const color = (plant.firstRepeatAt !== undefined
+        //             && t === plant.firstRepeatAt - t0 + 1)
+        //             ? 0
+        //             : colorMap[plant.spacetime[t][x]];
+        //         imageData32.setPixelAbgr(t, x, color);
+        //     }
+        // }
 
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;

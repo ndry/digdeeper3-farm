@@ -1,149 +1,165 @@
-export function CustomHashSet<T, THash>({
-    hashFn, equalsFn, verbose,
-}: {
-    hashFn: (el: T) => THash;
-    equalsFn: (el1: T, el2: T) => boolean;
-    verbose?: boolean;
-}) {
-    const bucketTag = Symbol();
-    type Bucket = T[] & { [bucketTag]: true };
-    const isBucket = (b: T | Bucket): b is Bucket =>
-        Array.isArray(b) && (bucketTag in b);
-    const newBucket = (el1: T, el2: T) => {
-        const bucket = [el1, el2] as any;
-        bucket[bucketTag] = true;
-        return bucket as Bucket;
-    };
+const bucketTag = Symbol();
 
-    const buckets = new Map<THash, Bucket | T>();
+type Bucket<T> = T[] & { [bucketTag]: true };
 
-    let maxBucketLength = 0;
-    const registerBucketLength = (len: number) => {
-        if (len <= maxBucketLength) { return; }
-        maxBucketLength = len;
-        verbose && console.log("new maxBucketLength", maxBucketLength);
-    };
+const newBucket = <T>(el1: T, el2: T) => {
+    const bucket = [el1, el2] as any;
+    bucket[bucketTag] = true;
+    return bucket as Bucket<T>;
+};
 
-    let size = 0;
+const isBucket = <T>(b: T | Bucket<T>): b is Bucket<T> =>
+    Array.isArray(b) && (bucketTag in b);
 
-    return {
-        has: (el: T) => {
-            const hash = hashFn(el);
-            const bucket = buckets.get(hash);
-            if (bucket) {
-                if (isBucket(bucket)) {
-                    for (const bel of bucket) {
-                        if (equalsFn(el, bel)) { return true; }
-                    }
-                } else {
-                    if (equalsFn(el, bucket)) { return true; }
-                }
-            }
-            return false;
-        },
+/**
+ * A set that uses a custom hash function and a custom equality function.
+ * Implementation is optimized for performance.
+ */
+export class CustomHashSet<T, THash> {
+    private readonly _hashFn: (el: T) => THash;
+    private readonly _equalsFn: (el1: T, el2: T) => boolean;
+    private readonly _verbose: boolean | undefined;
 
-        /**
-         * @returns true if the set size changed
-         *   (i.e. the element was not already in the set)
-         */
-        add: (el: T) => {
-            const hash = hashFn(el);
-            const bucket = buckets.get(hash);
-            if (bucket) {
-                if (isBucket(bucket)) {
-                    for (const bel of bucket) {
-                        if (equalsFn(el, bel)) { return false; }
-                    }
+    constructor({
+        hashFn, equalsFn, verbose,
+    }: {
+        hashFn: (el: T) => THash;
+        equalsFn: (el1: T, el2: T) => boolean;
+        verbose?: boolean;
+    }) {
+        this._hashFn = hashFn;
+        this._equalsFn = equalsFn;
+        this._verbose = verbose;
+    }
 
-                    const len = bucket.push(el);
-                    registerBucketLength(len);
-                    size++;
-                    return true;
-                } else {
-                    if (equalsFn(el, bucket)) { return false; }
+    private readonly _buckets = new Map<THash, Bucket<T> | T>();
+    private _size = 0;
 
-                    buckets.set(hash, newBucket(bucket, el));
-                    registerBucketLength(2);
-                    size++;
-                    return true;
+    private _maxBucketLength = 0;
+    registerBucketLength(len: number) {
+        if (len <= this._maxBucketLength) { return; }
+        this._maxBucketLength = len;
+        this._verbose
+            && this._maxBucketLength > 1
+            && console.log("new maxBucketLength", this._maxBucketLength);
+    }
+
+    has(el: T) {
+        const hash = this._hashFn(el);
+        const bucket = this._buckets.get(hash);
+        if (bucket) {
+            if (isBucket(bucket)) {
+                for (const bel of bucket) {
+                    if (this._equalsFn(el, bel)) { return true; }
                 }
             } else {
-                buckets.set(hash, el);
-                registerBucketLength(1);
-                size++;
+                if (this._equalsFn(el, bucket)) { return true; }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @returns `true` if the set size changed
+     *   (i.e. the element was not already in the set)
+     */
+    add(el: T) {
+        const hash = this._hashFn(el);
+        const bucket = this._buckets.get(hash);
+        if (bucket) {
+            if (isBucket(bucket)) {
+                for (const bel of bucket) {
+                    if (this._equalsFn(el, bel)) { return false; }
+                }
+
+                const len = bucket.push(el);
+                this.registerBucketLength(len);
+                this._size++;
+                return true;
+            } else {
+                if (this._equalsFn(el, bucket)) { return false; }
+
+                this._buckets.set(hash, newBucket(bucket, el));
+                this.registerBucketLength(2);
+                this._size++;
                 return true;
             }
-        },
+        } else {
+            this._buckets.set(hash, el);
+            this.registerBucketLength(1);
+            this._size++;
+            return true;
+        }
+    }
 
-        /**
-         * @returns true if the set size changed
-         *   (i.e. the element was in the set)
-         */
-        delete: (el: T) => {
-            const hash = hashFn(el);
-            const bucket = buckets.get(hash);
-            if (!bucket) { return false; }
-            if (isBucket(bucket)) {
-                for (let i = bucket.length - 1; i >= 0; i--) {
-                    if (equalsFn(el, bucket[i])) {
-                        bucket.splice(i, 1);
-                        size--;
-                        if (bucket.length === 1) {
-                            buckets.set(hash, bucket[0]);
-                        }
-                        if (bucket.length === 0) {
-                            buckets.delete(hash);
-                        }
-                        return true;
+    /**
+     * @returns `true` if the set size changed
+     *   (i.e. the element was in the set)
+     */
+    delete(el: T) {
+        const hash = this._hashFn(el);
+        const bucket = this._buckets.get(hash);
+        if (!bucket) { return false; }
+        if (isBucket(bucket)) {
+            for (let i = bucket.length - 1; i >= 0; i--) {
+                if (this._equalsFn(el, bucket[i])) {
+                    bucket.splice(i, 1);
+                    this._size--;
+                    if (bucket.length === 1) {
+                        this._buckets.set(hash, bucket[0]);
                     }
-                }
-            } else {
-                if (equalsFn(el, bucket)) {
-                    buckets.delete(hash);
-                    size--;
+                    if (bucket.length === 0) {
+                        this._buckets.delete(hash);
+                    }
                     return true;
                 }
             }
-            return false;
-        },
+        } else {
+            if (this._equalsFn(el, bucket)) {
+                this._buckets.delete(hash);
+                this._size--;
+                return true;
+            }
+        }
+        return false;
+    }
 
-        filterInPlace: (fn: (el: T) => unknown) => {
-            for (const [k, b] of buckets) {
-                if (isBucket(b)) {
-                    for (let i = b.length - 1; i >= 0; i--) {
-                        if (!fn(b[i])) {
-                            b.splice(i, 1);
-                            size--;
-                        }
-                    }
-                    if (b.length === 1) {
-                        buckets.set(k, b[0]);
-                    }
-                    if (b.length === 0) {
-                        buckets.delete(k);
-                    }
-                } else {
-                    if (!fn(b)) {
-                        buckets.delete(k);
-                        size--;
+    filterInPlace(fn: (el: T) => unknown) {
+        for (const [k, b] of this._buckets) {
+            if (isBucket(b)) {
+                for (let i = b.length - 1; i >= 0; i--) {
+                    if (!fn(b[i])) {
+                        b.splice(i, 1);
+                        this._size--;
                     }
                 }
-            }
-        },
-
-        [Symbol.iterator]: function* () {
-            for (const b of buckets.values()) {
-                if (isBucket(b)) {
-                    // yield *b; - causes a lot of  overhead
-                    for (let i = 0; i < b.length; i++) {
-                        yield b[i];
-                    }
-                } else {
-                    yield b;
+                if (b.length === 1) {
+                    this._buckets.set(k, b[0]);
+                }
+                if (b.length === 0) {
+                    this._buckets.delete(k);
+                }
+            } else {
+                if (!fn(b)) {
+                    this._buckets.delete(k);
+                    this._size--;
                 }
             }
-        },
+        }
+    }
 
-        get size() { return size; },
-    };
+    *[Symbol.iterator]() {
+        for (const b of this._buckets.values()) {
+            if (isBucket(b)) {
+                // yield *b; - causes a lot of  overhead
+                for (let i = 0; i < b.length; i++) {
+                    yield b[i];
+                }
+            } else {
+                yield b;
+            }
+        }
+    }
+
+    get size() { return this._size; }
 }

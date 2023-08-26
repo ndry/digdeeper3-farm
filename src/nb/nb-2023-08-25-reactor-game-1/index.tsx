@@ -9,11 +9,16 @@ import { HmacSHA256 } from "crypto-js";
 import { createFarmState, createPlantState, mutablePlantStates, updatePlantStateInPlace } from "./model";
 import { PotView } from "./pot-view";
 
+const plantCap = 50;
+const dt = 15000;
 
 
 const farmRecoil = atom({
     key: "farm",
-    default: createFarmState("farmStateSeed"),
+    default: createFarmState({
+        seed: "farmStateSeed",
+        plantCap,
+    }),
 });
 
 
@@ -35,7 +40,7 @@ export default function Component() {
             const perfStart = performance.now();
             for (const plant of farm.plantKeys) {
                 const plantState = mutablePlantStates.get(plant)!;
-                updatePlantStateInPlace(plantState, 15000);
+                updatePlantStateInPlace(plantState, dt);
             }
 
             // autocollect
