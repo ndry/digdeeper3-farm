@@ -15,6 +15,7 @@ import { StateProp } from "../../utils/reactish/state-prop";
 import { atom, useRecoilState, useRecoilValue } from "recoil";
 import { HmacSHA256 } from "crypto-js";
 import { create } from "lodash";
+import { CustomHashSet } from "../../utils/custom-hash-set";
 
 const start0 = ca237v1FromSeed(SHA256("start0"));
 const start1 = ca237v1FromSeed(SHA256("start1"));
@@ -58,8 +59,6 @@ const farmRecoil = atom({
 });
 
 
-
-
 export function createPlantState(rule: Rule, name: string) {
     const imageData = new ImageData(1500, 81);
     const imageData32 = createImageData32(imageData);
@@ -73,7 +72,35 @@ export function createPlantState(rule: Rule, name: string) {
         imageData,
         imageData32,
         t: 2,
-        sSet: new Set<Rule>([start0, start1]),
+        sSet: CustomHashSet<number[], number>({
+            hashFn: (table) => {
+                let h = 0;
+                let i = 0;
+                for (; i < table.length - 16; i += 16) {
+                    let h0 = 0;
+                    for (let j = 0; j < 16; j++) {
+                        h0 = (h0 << 2) + table[i + j];
+                    }
+                    h = h ^ h0;
+                }
+                {
+                    let h0 = 0;
+                    for (; i < table.length; i++) {
+                        h0 = (h0 << 2) + table[i];
+                    }
+                    h = h ^ h0;
+                }
+                return h;
+            },
+            equalsFn: (a, b) => {
+                if (a.length !== b.length) { return false; }
+                for (let i = 0; i < a.length; i++) {
+                    if (a[i] !== b[i]) { return false; }
+                }
+                return true;
+            },
+            verbose: true,
+        }),
         table: parseTable(rule),
         spacetime: [
             parseTable(start0),
@@ -103,11 +130,9 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
         }
 
         if (state.firstRepeatAt === undefined) {
-            const r = keyifyTable(space);
-            if (state.sSet.has(r)) {
+            const wasAbsent = state.sSet.add(space);
+            if (!wasAbsent) {
                 state.firstRepeatAt = state.t;
-            } else {
-                state.sSet.add(r);
             }
         }
         state.spacetime.push(space);
@@ -175,6 +200,7 @@ const runByDefault = new URL(location.href).searchParams.get("run") == "1";
 
 export default function Component() {
     const [renderTrigger, setRenderTrigger] = useState(0);
+    const [perf, setPerf] = useState(Infinity);
     const [isRunning, setIsRunning] = useState(runByDefault);
 
     const [farm, setFarm] = useRecoilState(farmRecoil);
@@ -184,9 +210,10 @@ export default function Component() {
 
         let h: ReturnType<typeof setTimeout> | undefined;
         const tick = () => {
+            const perfStart = performance.now();
             for (const plant of farm.plantKeys) {
                 const plantState = mutablePlantStates.get(plant)!;
-                updatePlantStateInPlace(plantState, 500);
+                updatePlantStateInPlace(plantState, 15000);
             }
 
             // autocollect
@@ -220,8 +247,10 @@ export default function Component() {
                 }));
             }
 
+            const perfEnd = performance.now();
+            setPerf(perfEnd - perfStart);
             setRenderTrigger(x => x + 1);
-            h = setTimeout(tick, 1000 / 60);
+            h = setTimeout(tick, 100);
         };
         tick();
         return () => { clearTimeout(h); };
@@ -240,7 +269,7 @@ export default function Component() {
                 {isRunning ? "pause" : "run"}
             </button>
             <br />
-            renderTrigger: {renderTrigger}
+            renderTrigger: {renderTrigger} / perf: {perf.toFixed(2)}ms
             <br />
             <button
                 onClick={() => {
