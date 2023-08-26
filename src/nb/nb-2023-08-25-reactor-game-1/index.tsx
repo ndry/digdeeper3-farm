@@ -118,16 +118,18 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
     while (state.t < t1) {
         const prevPrev = state.spacetime[state.spacetime.length - 2];
         const prev = state.spacetime[state.spacetime.length - 1];
-        const space = prev.map(() => 0);
-        for (let x = 0; x < prev.length; x++) {
+        const space = new Array(prev.length);
+
+        space[0] = state.table[getFullCombinedState(
+            3, prev[80], prev[0], prev[1], prevPrev[0])];
+
+        for (let x = 1; x < 80; x++) {
             space[x] = state.table[getFullCombinedState(
-                3,
-                prev[(x - 1 + prev.length) % prev.length],
-                prev[x],
-                prev[(x + 1) % prev.length],
-                prevPrev[x],
-            )];
+                3, prev[x - 1], prev[x], prev[x + 1], prevPrev[x])];
         }
+
+        space[80] = state.table[getFullCombinedState(
+            3, prev[79], prev[80], prev[0], prevPrev[80])];
 
         if (state.firstRepeatAt === undefined) {
             const wasAbsent = state.sSet.add(space);
@@ -136,10 +138,11 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
             }
         }
         state.spacetime.push(space);
-        while (state.spacetime.length > state.imageData.width) {
-            state.spacetime.shift();
-        }
         state.t++;
+    }
+    if (state.spacetime.length > state.imageData.width) {
+        state.spacetime
+            .splice(0, state.spacetime.length - state.imageData.width);
     }
 
     const t0 = state.t - state.spacetime.length;
@@ -213,7 +216,7 @@ export default function Component() {
             const perfStart = performance.now();
             for (const plant of farm.plantKeys) {
                 const plantState = mutablePlantStates.get(plant)!;
-                updatePlantStateInPlace(plantState, 15000);
+                updatePlantStateInPlace(plantState, 45000);
             }
 
             // autocollect
