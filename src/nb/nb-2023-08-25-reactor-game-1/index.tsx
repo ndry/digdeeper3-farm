@@ -8,6 +8,12 @@ import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
 import { createImageData32, cssColorToAbgr } from "../../utils/create-image-data32";
 import { getFullCombinedState } from "../../ca237v1/get-full-combined-state";
 import { Reaction } from "../nb-2023-08-23-reactor-game/reaction";
+import type * as CryptoJS from "crypto-js";
+export type WordArray = CryptoJS.lib.WordArray;
+import update from "immutability-helper";
+import { StateProp } from "../../utils/reactish/state-prop";
+import { atom, useRecoilState, useRecoilValue } from "recoil";
+import { HmacSHA256 } from "crypto-js";
 
 const start0 = ca237v1FromSeed(SHA256("start0"));
 const start1 = ca237v1FromSeed(SHA256("start1"));
@@ -19,10 +25,32 @@ const colorMap = [
 ];
 
 
-export function createPlantState(rule: Rule) {
-    const imageData = new ImageData(500, 81);
+export function createFarmState(seed: string) {
+    return {
+        seed: seed,
+        plantIcrement: 0,
+        plants: Array.from({ length: 10 }, () => undefined) as (string | undefined)[],
+        plantCap: 10,
+        collectedPlants: [] as any[], // CollectedPlantState[]
+        money: 1000,
+    };
+}
+
+
+const farmRecoil = atom({
+    key: "farm",
+    default: createFarmState("farmStateSeed"),
+});
+
+
+export const mutablePlantStates = new Map<string, PlantState>();
+
+
+export function createPlantState(rule: Rule, name: string) {
+    const imageData = new ImageData(1500, 81);
     const imageData32 = createImageData32(imageData);
     return {
+        name,
         seed: {
             rule,
             s0: start0,
@@ -89,20 +117,22 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
 }
 
 export function RuleView({
-    name,
-    rule,
-    plant,
+    i,
+    renderTrigger,
     ...props
 }: jsx.JSX.IntrinsicElements["div"] & {
-    name: string,
-    rule: Rule,
-    plant: PlantState,
+    i: number,
+    renderTrigger: number,
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const imageData = plant.imageData;
-    const firstRepeatAt = plant.firstRepeatAt;
+
+    const [farm, setFarm] = useRecoilState(farmRecoil);
+    const plant = farm.plants[i] && mutablePlantStates.get(farm.plants[i]!);
 
     useLayoutEffect(() => {
+        if (!plant) { return; }
+        const imageData = plant.imageData;
+
         const canvasEl = canvasRef.current;
         if (!canvasEl) { return; }
         const ctx = canvasEl.getContext("2d");
@@ -110,19 +140,33 @@ export function RuleView({
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;
         ctx.putImageData(imageData, 0, 0);
-    });
+    }, [renderTrigger, plant]);
 
     return <div {...props}>
-        {name}:
-        <LinkCaPreview substance={rule} />
-        &nbsp;/&nbsp;
-        firstRepeatAt: {firstRepeatAt}
-        &nbsp;/&nbsp;
-        t: {plant.t}
-        <br />
-        <canvas
-            ref={canvasRef}
-        />
+        <button onClick={() => {
+            const seed = HmacSHA256("seed." + farm.plantIcrement, farm.seed);
+            const rule = ca237v1FromSeed(seed);
+            const plant = createPlantState(rule, seed.toString());
+            mutablePlantStates.set(rule, plant);
+            setFarm(update(farm, {
+                plantIcrement: { $set: farm.plantIcrement + 1 },
+                plants: {
+                    [i]: { $set: rule },
+                },
+            }));
+        }}>plant</button>
+        {plant && <>
+            {plant.name}:
+            <LinkCaPreview substance={plant.seed.rule} />
+            &nbsp;/&nbsp;
+            firstRepeatAt: {plant.firstRepeatAt}
+            &nbsp;/&nbsp;
+            t: {plant.t}
+            <br />
+            <canvas
+                ref={canvasRef}
+            />
+        </>}
     </div>;
 }
 
@@ -132,39 +176,24 @@ export default function Component() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [isRunning, setIsRunning] = useState(runByDefault);
 
-    const rootSeed = "target." + 1;
-    const rules = useMemo(
-        () => Array.from({ length: 10 }, (_, i) => {
-            const seed = rootSeed + "." + i;
-            const rule = ca237v1FromSeed(SHA256(seed));
-            const plant = createPlantState(rule);
-            return {
-                rule,
-                seed,
-                plant,
-            };
-        }),
-        [rootSeed],
-    );
+    const farm = useRecoilValue(farmRecoil);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
 
         let h: ReturnType<typeof setTimeout> | undefined;
         const tick = () => {
-            for (const { plant } of rules) {
-                updatePlantStateInPlace(plant, 10000);
+            for (const plant of farm.plants) {
+                if (!plant) { continue; }
+                const plantState = mutablePlantStates.get(plant)!;
+                updatePlantStateInPlace(plantState, 100);
             }
             setRenderTrigger(x => x + 1);
-            h = setTimeout(tick, 1000);
+            h = setTimeout(tick, 1000 / 60);
         };
         tick();
         return () => { clearTimeout(h); };
-    }, [rules, isRunning]);
-
-    const sortedRules = [...rules].sort((a, b) =>
-    ((a.plant.firstRepeatAt ?? Infinity)
-        - (b.plant.firstRepeatAt ?? Infinity)));
+    }, [farm, isRunning]);
 
     return (
         <div css={[{
@@ -181,9 +210,10 @@ export default function Component() {
             <br />
             renderTrigger: {renderTrigger}
             <br />
-            {sortedRules.map((x1, i) => <div>
-                <RuleView name={x1.seed} key={i} {...x1} />
+            {Array.from({ length: farm.plantCap }, (_, i) => <div key={i}>
+                <RuleView i={i} renderTrigger={renderTrigger} />
             </div>)}
+
         </div >
     );
 }
