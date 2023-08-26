@@ -72,20 +72,8 @@ const spacetimeViewHash = (view: SpacetimeView) => {
     const spacetime0 = view.spacetime0;
     const offset = view.offset;
     let h = 0;
-    let i = 0;
-    for (; i < 81 - 16; i += 16) {
-        let h0 = 0;
-        for (let j = 0; j < 16; j++) {
-            h0 = (h0 << 2) + spacetime0[offset + i + j];
-        }
-        h = h ^ h0;
-    }
-    {
-        let h0 = 0;
-        for (; i < 81; i++) {
-            h0 = (h0 << 2) + spacetime0[offset + i];
-        }
-        h = h ^ h0;
+    for (let i = 0; i < 81; i++) {
+        h = h ^ (spacetime0[offset + i] << ((i % 16) * 2));
     }
     return h;
 };
