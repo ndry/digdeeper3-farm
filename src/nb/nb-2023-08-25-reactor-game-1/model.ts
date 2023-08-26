@@ -79,6 +79,7 @@ export function createPlantState(rule: Rule, name: string) {
             },
             verbose: true,
         }),
+        sList: [] as number[][],
         table: parseTable(rule),
         spacetime: [
             parseTable(start0),
@@ -111,6 +112,7 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
 
         if (state.firstRepeatAt === undefined) {
             const wasAbsent = state.sSet.add(space);
+            state.sList.push(space);
             if (!wasAbsent) {
                 state.firstRepeatAt = state.t;
             }
@@ -121,5 +123,13 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
     if (state.spacetime.length > state.timeLen) {
         state.spacetime
             .splice(0, state.spacetime.length - state.timeLen);
+    }
+
+    const sListTargetLen = 100_000;
+    if (state.sList.length > sListTargetLen) {
+        const rem = state.sList.splice(0, state.sList.length - sListTargetLen);
+        for (const s of rem) {
+            state.sSet.delete(s);
+        }
     }
 }
