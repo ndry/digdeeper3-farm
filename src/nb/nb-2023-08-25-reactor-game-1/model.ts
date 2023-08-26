@@ -6,6 +6,7 @@ export type WordArray = CryptoJS.lib.WordArray;
 import { HmacSHA256 } from "crypto-js";
 import { CustomHashSet } from "../../utils/custom-hash-set";
 import { fillPrestartedSpacetime81UsingCyclicBorders } from "./fill-prestarted-spacetime81-using-cyclic-borders";
+import { SpaceOfSpacetime, space81Equals, space81HashFast } from "./space-of-spacetime";
 
 
 
@@ -45,7 +46,6 @@ export function createFarmState({
 
 
 export function createPlantState(rule: Rule, name: string) {
-    const timeLen = 1500;
     return {
         name,
         seed: {
@@ -54,7 +54,6 @@ export function createPlantState(rule: Rule, name: string) {
             s1: start1,
         },
         t: 2,
-        timeLen,
         sList: [] as number[][],
         table: parseTable(rule),
         spacetime: undefined as Uint8Array | undefined,
@@ -62,44 +61,6 @@ export function createPlantState(rule: Rule, name: string) {
     };
 }
 type PlantState = ReturnType<typeof createPlantState>;
-
-type SpacetimeView = {
-    spacetime0: Uint8Array,
-    offset: number,
-}
-
-const spacetimeViewHash = (view: SpacetimeView) => {
-    const spacetime0 = view.spacetime0;
-    const offset = view.offset;
-    let h = 0;
-    for (let i = 0; i < 81; i++) {
-        h = h ^ (spacetime0[offset + i] << ((i % 16) * 2));
-    }
-    return h;
-};
-
-const spacetimeViewHashFast = (view: SpacetimeView) => {
-    const spacetime0 = view.spacetime0;
-    const offset = view.offset;
-    let h = 0;
-    for (let i = 0; i < 32; i += 2) {
-        h = h ^ (spacetime0[offset + i] << i);
-    }
-    return h;
-};
-
-const spacetimeViewEquals = (a: SpacetimeView, b: SpacetimeView) => {
-    const spacetime0 = a.spacetime0;
-    const offset = a.offset;
-    const otherSpacetime0 = b.spacetime0;
-    const otherOffset = b.offset;
-    for (let i = 0; i < 81; i++) {
-        if (spacetime0[offset + i] !== otherSpacetime0[otherOffset + i]) {
-            return false;
-        }
-    }
-    return true;
-};
 
 export function updatePlantStateInPlace(state: PlantState, dt: number) {
     if (state.firstRepeatAt !== undefined) { return; }
@@ -124,9 +85,9 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
 
     fillPrestartedSpacetime81UsingCyclicBorders(spacetime, state.table);
 
-    const sSet = new CustomHashSet<SpacetimeView, number>({
-        hashFn: spacetimeViewHashFast,
-        equalsFn: spacetimeViewEquals,
+    const sSet = new CustomHashSet<SpaceOfSpacetime, number>({
+        hashFn: space81HashFast,
+        equalsFn: space81Equals,
         // verbose: true,
     });
     for (let t = 0; t < dt; t++) {
@@ -146,49 +107,4 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
         }
     }
     state.t += dt;
-
-
-    // const t1 = state.t + dt;
-    // while (state.t < t1) {
-    //     const prevPrev = state.spacetime[state.spacetime.length - 2];
-    //     const prev = state.spacetime[state.spacetime.length - 1];
-    //     const space = new Array(prev.length);
-
-    //     space[0] = state.table[getFullCombinedState(
-    //         3, prev[80], prev[0], prev[1], prevPrev[0])];
-
-    //     for (let x = 1; x < 80; x++) {
-    //         space[x] = state.table[getFullCombinedState(
-    //             3, prev[x - 1], prev[x], prev[x + 1], prevPrev[x])];
-    //     }
-
-    //     space[80] = state.table[getFullCombinedState(
-    //         3, prev[79], prev[80], prev[0], prevPrev[80])];
-
-    //     // if (state.firstRepeatAt === undefined) {
-    //     //     const wasAbsent = state.sSet.add(space);
-    //     //     state.sList.push(space);
-    //     //     if (!wasAbsent) {
-    //     //         state.firstRepeatAt = state.t;
-    //     //     }
-    //     // } else {
-    //     //     if (state.t - state.firstRepeatAt > state.timeLen / 2) {
-    //     //         break;
-    //     //     }
-    //     // }
-    //     state.spacetime.push(space);
-    //     state.t++;
-    // }
-    // if (state.spacetime.length > state.timeLen) {
-    //     state.spacetime
-    //         .splice(0, state.spacetime.length - state.timeLen);
-    // }
-
-    // const sListTargetLen = 10_000;
-    // if (state.sList.length > sListTargetLen) {
-    //     const rem = state.sList.splice(0, state.sList.length - sListTargetLen);
-    //     for (const s of rem) {
-    //         state.sSet.delete(s);
-    //     }
-    // }
 }

@@ -23,10 +23,10 @@ export function PotView({
     const plant = mutablePlantStates.get(plantKey)!;
 
     const { imageData, imageData32 } = useMemo(() => {
-        const imageData = new ImageData(plant.timeLen, 81);
+        const imageData = new ImageData(500, 81);
         const imageData32 = createImageData32(imageData);
         return { imageData, imageData32 };
-    }, [plant.timeLen]);
+    }, []);
 
     useLayoutEffect(() => {
         if (!plant) { return; }
@@ -37,8 +37,8 @@ export function PotView({
         if (!ctx) { return; }
 
         if (plant.spacetime === undefined) { return; }
-        const offset = plant.spacetime.length - (plant.timeLen * 81);
-        for (let t = 0; t < plant.timeLen; t++) {
+        const offset = plant.spacetime.length - (imageData.width * 81);
+        for (let t = 0; t < imageData.width; t++) {
             for (let x = 0; x < 81; x++) {
                 const color = colorMap[plant.spacetime[offset + t * 81 + x]];
                 imageData32.setPixelAbgr(t, x, color);
