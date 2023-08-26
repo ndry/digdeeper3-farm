@@ -14,6 +14,7 @@ import update from "immutability-helper";
 import { StateProp } from "../../utils/reactish/state-prop";
 import { atom, useRecoilState, useRecoilValue } from "recoil";
 import { HmacSHA256 } from "crypto-js";
+import { create } from "lodash";
 
 const start0 = ca237v1FromSeed(SHA256("start0"));
 const start1 = ca237v1FromSeed(SHA256("start1"));
@@ -24,13 +25,27 @@ const colorMap = [
     cssColorToAbgr("#0000ff"),
 ];
 
+export const mutablePlantStates = new Map<string, PlantState>();
 
 export function createFarmState(seed: string) {
+    const plantCap = 5;
+    let plantIcrement = 0;
+    const plantKeys = Array.from(
+        { length: plantCap },
+        () => {
+            const rule = ca237v1FromSeed(HmacSHA256(
+                "seed." + plantIcrement,
+                seed));
+            mutablePlantStates.set(rule,
+                createPlantState(rule, seed.toString()));
+            plantIcrement++;
+            return rule;
+        });
     return {
         seed: seed,
-        plantIcrement: 0,
-        plants: Array.from({ length: 10 }, () => undefined) as (string | undefined)[],
-        plantCap: 10,
+        plantIcrement,
+        plantCap,
+        plantKeys,
         collectedPlants: [] as any[], // CollectedPlantState[]
         money: 1000,
     };
@@ -43,7 +58,6 @@ const farmRecoil = atom({
 });
 
 
-export const mutablePlantStates = new Map<string, PlantState>();
 
 
 export function createPlantState(rule: Rule, name: string) {
@@ -117,17 +131,16 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
 }
 
 export function RuleView({
-    i,
+    plantKey,
     renderTrigger,
     ...props
 }: jsx.JSX.IntrinsicElements["div"] & {
-    i: number,
+    plantKey: string,
     renderTrigger: number,
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
-    const [farm, setFarm] = useRecoilState(farmRecoil);
-    const plant = farm.plants[i] && mutablePlantStates.get(farm.plants[i]!);
+    const plant = mutablePlantStates.get(plantKey);
 
     useLayoutEffect(() => {
         if (!plant) { return; }
@@ -140,21 +153,9 @@ export function RuleView({
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;
         ctx.putImageData(imageData, 0, 0);
-    }, [renderTrigger, plant]);
+    }, [renderTrigger, plantKey]);
 
     return <div {...props}>
-        <button onClick={() => {
-            const seed = HmacSHA256("seed." + farm.plantIcrement, farm.seed);
-            const rule = ca237v1FromSeed(seed);
-            const plant = createPlantState(rule, seed.toString());
-            mutablePlantStates.set(rule, plant);
-            setFarm(update(farm, {
-                plantIcrement: { $set: farm.plantIcrement + 1 },
-                plants: {
-                    [i]: { $set: rule },
-                },
-            }));
-        }}>plant</button>
         {plant && <>
             {plant.name}:
             <LinkCaPreview substance={plant.seed.rule} />
@@ -176,18 +177,49 @@ export default function Component() {
     const [renderTrigger, setRenderTrigger] = useState(0);
     const [isRunning, setIsRunning] = useState(runByDefault);
 
-    const farm = useRecoilValue(farmRecoil);
+    const [farm, setFarm] = useRecoilState(farmRecoil);
 
     useLayoutEffect(() => {
         if (!isRunning) { return; }
 
         let h: ReturnType<typeof setTimeout> | undefined;
         const tick = () => {
-            for (const plant of farm.plants) {
-                if (!plant) { continue; }
+            for (const plant of farm.plantKeys) {
                 const plantState = mutablePlantStates.get(plant)!;
-                updatePlantStateInPlace(plantState, 100);
+                updatePlantStateInPlace(plantState, 500);
             }
+
+            // autocollect
+            const keysToCollect = farm.plantKeys.filter(plant => {
+                const plantState = mutablePlantStates.get(plant)!;
+                return plantState.firstRepeatAt !== undefined;
+            });
+            if (keysToCollect.length > 0) {
+                const keysToLeave = farm.plantKeys.filter(plant => {
+                    const plantState = mutablePlantStates.get(plant)!;
+                    return plantState.firstRepeatAt === undefined;
+                });
+                let plantIcrement = farm.plantIcrement;
+                const moreKeys = Array.from(
+                    { length: keysToCollect.length },
+                    () => {
+                        const seed = HmacSHA256(
+                            "seed." + plantIcrement,
+                            farm.seed);
+                        const rule = ca237v1FromSeed(seed);
+                        mutablePlantStates.set(rule,
+                            createPlantState(rule, seed.toString()));
+                        plantIcrement++;
+                        return rule;
+                    });
+
+                setFarm(update(farm, {
+                    plantIcrement: { $set: plantIcrement },
+                    plantKeys: { $set: [...keysToLeave, ...moreKeys] },
+                    collectedPlants: { $push: keysToCollect },
+                }));
+            }
+
             setRenderTrigger(x => x + 1);
             h = setTimeout(tick, 1000 / 60);
         };
@@ -210,10 +242,61 @@ export default function Component() {
             <br />
             renderTrigger: {renderTrigger}
             <br />
-            {Array.from({ length: farm.plantCap }, (_, i) => <div key={i}>
-                <RuleView i={i} renderTrigger={renderTrigger} />
+            <button
+                onClick={() => {
+                    const seed = HmacSHA256(
+                        "seed." + farm.plantIcrement,
+                        farm.seed);
+                    const rule = ca237v1FromSeed(seed);
+                    const plant = createPlantState(rule, seed.toString());
+                    mutablePlantStates.set(rule, plant);
+                    setFarm(update(farm, {
+                        plantIcrement: { $set: farm.plantIcrement + 1 },
+                        plantKeys: { $push: [rule] },
+                    }));
+                }}
+                disabled={farm.plantKeys.length >= farm.plantCap}
+            >plant</button>
+            <br />
+            <br />
+            {farm.plantKeys.map((plantKey, i) => <div key={plantKey}>
+                <button onClick={() => {
+                    const seed = HmacSHA256(
+                        "seed." + farm.plantIcrement,
+                        farm.seed);
+                    const rule = ca237v1FromSeed(seed);
+                    mutablePlantStates.set(rule, createPlantState(rule, seed.toString()));
+                    // mutablePlantStates.delete(plant.seed.rule);
+                    setFarm(update(farm, {
+                        plantIcrement: { $set: farm.plantIcrement + 1 },
+                        plantKeys: { $splice: [[i, 1, rule]] },
+                        collectedPlants: { $push: [plantKey] },
+                    }));
+                }}>collect</button>
+                &nbsp;
+                <button onClick={() => {
+                    const seed = HmacSHA256(
+                        "seed." + farm.plantIcrement,
+                        farm.seed);
+                    const rule = ca237v1FromSeed(seed);
+                    mutablePlantStates.set(rule, createPlantState(rule, seed.toString()));
+                    setFarm(update(farm, {
+                        plantIcrement: { $set: farm.plantIcrement + 1 },
+                        plantKeys: { $splice: [[i, 1, rule]] },
+                    }));
+                }}>trash</button>
+                <RuleView plantKey={plantKey} renderTrigger={renderTrigger} />
             </div>)}
-
+            <br />
+            <br />
+            collectedPlants:
+            {farm.collectedPlants
+                .toSorted((a, b) =>
+                    (mutablePlantStates.get(b)?.firstRepeatAt ?? -Infinity)
+                    - (mutablePlantStates.get(a)?.firstRepeatAt ?? -Infinity))
+                .map(plantKey => <div key={plantKey}>
+                    <RuleView plantKey={plantKey} renderTrigger={renderTrigger} />
+                </div>)}
         </div >
     );
 }
