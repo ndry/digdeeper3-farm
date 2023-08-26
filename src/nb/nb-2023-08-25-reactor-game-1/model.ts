@@ -78,6 +78,16 @@ const spacetimeViewHash = (view: SpacetimeView) => {
     return h;
 };
 
+const spacetimeViewHashFast = (view: SpacetimeView) => {
+    const spacetime0 = view.spacetime0;
+    const offset = view.offset;
+    let h = 0;
+    for (let i = 0; i < 32; i += 2) {
+        h = h ^ (spacetime0[offset + i] << i);
+    }
+    return h;
+};
+
 const spacetimeViewEquals = (a: SpacetimeView, b: SpacetimeView) => {
     const spacetime0 = a.spacetime0;
     const offset = a.offset;
@@ -115,9 +125,9 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
     fillPrestartedSpacetime81UsingCyclicBorders(spacetime, state.table);
 
     const sSet = new CustomHashSet<SpacetimeView, number>({
-        hashFn: spacetimeViewHash,
+        hashFn: spacetimeViewHashFast,
         equalsFn: spacetimeViewEquals,
-        verbose: true,
+        // verbose: true,
     });
     for (let t = 0; t < dt; t++) {
         const spaceOffset = (t + 2) * 81;
