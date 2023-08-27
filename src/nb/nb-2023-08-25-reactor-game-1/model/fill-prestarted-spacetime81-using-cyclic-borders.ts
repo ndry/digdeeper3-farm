@@ -4,7 +4,7 @@
  */
 export function fillPrestartedSpacetime81UsingCyclicBorders(
     spacetime: Uint8Array,
-    table: number[],
+    table: number[] | Uint8Array,
 ) {
     const len = spacetime.length - 2 * 81;
     for (let ppi = 0; ppi < len; ppi += 81) {

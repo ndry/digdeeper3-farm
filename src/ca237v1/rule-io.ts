@@ -22,7 +22,7 @@ export const RuleDecoder = pipe(
         asIdGuard((rule) => BigInt(rule.slice(i.length + 1)) < ruleSpaceSize),
         "rule is within rule space"),
 );
-/** `ca237@1/${string representing base 10 number without leading zeros}` */
+/** `ca237v1_${string representing base 10 number without leading zeros}` */
 export type Rule = D.TypeOf<typeof RuleDecoder>;
 
 export const parseTable = (rule: Rule) => {
