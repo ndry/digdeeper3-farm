@@ -37,27 +37,29 @@ export function PotView({
         if (!ctx) { return; }
 
         if (plant.spacetime === undefined) { return; }
-        const offset = plant.spacetime.length - (imageData.width * 81);
+
+
+
+        const startT = plant.firstRepeatAt === undefined
+            ? plant.t - imageData.width
+            : plant.firstRepeatAt - imageData.width / 2;
+        const startT0 = plant.t - plant.spacetime.length / 81;
+        const repeatLineT = plant.firstRepeatAt === undefined
+            ? -1
+            : plant.firstRepeatAt - startT + 1;
+        const offset = (startT - startT0) * 81;
         for (let t = 0; t < imageData.width; t++) {
+            const i = offset + t * 81;
+            if (i < 0 || i >= plant.spacetime.length * 81) { continue; }
             for (let x = 0; x < 81; x++) {
-                const color = colorMap[plant.spacetime[offset + t * 81 + x]];
+                const color =
+                    t === repeatLineT
+                        ? 0
+                        : colorMap[plant.spacetime[i + x]];
                 imageData32.setPixelAbgr(t, x, color);
+
             }
         }
-
-
-
-
-        // const t0 = plant.t - plant.spacetime.length;
-        // for (let t = 0; t < plant.spacetime.length; t++) {
-        //     for (let x = 0; x < plant.spacetime[t].length; x++) {
-        //         const color = (plant.firstRepeatAt !== undefined
-        //             && t === plant.firstRepeatAt - t0 + 1)
-        //             ? 0
-        //             : colorMap[plant.spacetime[t][x]];
-        //         imageData32.setPixelAbgr(t, x, color);
-        //     }
-        // }
 
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;
