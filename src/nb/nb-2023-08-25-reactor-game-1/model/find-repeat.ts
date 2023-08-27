@@ -1,4 +1,4 @@
-import { CustomHashSet } from "../../utils/custom-hash-set";
+import { CustomHashSet } from "../../../utils/custom-hash-set";
 
 
 type OffsetOnSpacetime = {
@@ -58,4 +58,4 @@ export const findRepeat = (
         }
     }
     return -1;
-}
+};

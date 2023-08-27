@@ -1,8 +1,8 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { jsx } from "@emotion/react";
-import { LinkCaPreview } from "../nb-2023-08-13-reactor-game/link-ca-preview";
-import { mutablePlantStates } from "./model";
-import { createImageData32, cssColorToAbgr } from "../../utils/create-image-data32";
+import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview";
+import { mutablePlantStates } from "../model/model";
+import { createImageData32, cssColorToAbgr } from "../../../utils/create-image-data32";
 
 
 export const colorMap = [

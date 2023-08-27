@@ -6,8 +6,9 @@ export type WordArray = CryptoJS.lib.WordArray;
 import update from "immutability-helper";
 import { atom, useRecoilState } from "recoil";
 import { HmacSHA256 } from "crypto-js";
-import { createFarmState, createPlantState, mutablePlantStates, updatePlantStateInPlace } from "./model";
-import { PotView } from "./pot-view";
+import { createFarmState, createPlantState, mutablePlantStates, updatePlantStateInPlace } from "./model/model";
+import { PotView } from "./app/pot-view";
+import { MainView } from "./app/main-view";
 
 const plantCap = 50;
 const dt = 15000;
@@ -20,7 +21,6 @@ const farmRecoil = atom({
         plantCap,
     }),
 });
-
 
 
 const runByDefault = new URL(location.href).searchParams.get("run") == "1";
@@ -91,6 +91,15 @@ export default function Component() {
             padding: "1em",
         }, retroThemeCss]}>
             Hello World from {import.meta.url}
+            <div css={{
+                display: "flex",
+                flexDirection: "row",
+            }}>
+                <MainView css={{ flex: "1" }} />
+                <MainView css={{ flex: "1" }} />
+            </div>
+
+
             <br />
             <button onClick={() => setIsRunning(x => !x)}>
                 {isRunning ? "pause" : "run"}

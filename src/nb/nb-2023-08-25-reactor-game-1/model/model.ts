@@ -1,6 +1,6 @@
 import { SHA256 } from "crypto-js";
-import { Rule, parseTable } from "../../ca237v1/rule-io";
-import { ca237v1FromSeed } from "../nb-2023-08-13-reactor-game/ca237v1-from-seed";
+import { Rule, parseTable } from "../../../ca237v1/rule-io";
+import { ca237v1FromSeed } from "../../nb-2023-08-13-reactor-game/ca237v1-from-seed";
 import type * as CryptoJS from "crypto-js";
 export type WordArray = CryptoJS.lib.WordArray;
 import { HmacSHA256 } from "crypto-js";
