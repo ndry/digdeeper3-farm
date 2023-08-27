@@ -95,7 +95,7 @@ export function updatePlantStateInPlace(state: PlantState, dt: number) {
 
         if (state.firstRepeatAt === undefined) {
             const wasAbsent = sSet.add({
-                spacetime0: spacetime, offset: spaceOffset,
+                spacetime: spacetime, offset: spaceOffset,
             });
             if (!wasAbsent) {
                 state.firstRepeatAt = state.t + t;
