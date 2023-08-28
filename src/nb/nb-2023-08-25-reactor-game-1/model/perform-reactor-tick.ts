@@ -4,6 +4,7 @@ import { findRepeat } from "./find-repeat";
 import { prepareSpacetime81 } from "./prepare-spacetime81";
 import { _never } from "../../../utils/_never";
 import update from "immutability-helper";
+import { ReactionCard } from "./reaction-card";
 
 export type ReactionSeed = {
     rule: Rule,
@@ -26,12 +27,9 @@ export const getMutableState = (key: string) => {
 };
 
 
-export const performReactorTick = <
-    TReactionCard extends {
-        reactionSeed: ReactionSeed, t: number, repeatAt: number | undefined
-    },
->(
-    selectedReaction: TReactionCard, {
+export const performReactorTick = (
+    reaction: ReactionCard,
+    {
         mutableStorageKey,
         reactionMultistepSize,
         reactionMultistepsPerTick,
@@ -44,18 +42,18 @@ export const performReactorTick = <
     },
 ) => {
     const mutableState = getMutableState(mutableStorageKey);
-    let reactionState = mutableState.get(selectedReaction.reactionSeed);
+    let reactionState = mutableState.get(reaction.reactionSeed);
 
     if (!reactionState) {
         mutableState.set(
-            selectedReaction.reactionSeed,
+            reaction.reactionSeed,
             reactionState = {
                 table: new Uint8Array(
-                    parseTable(selectedReaction.reactionSeed.rule)),
+                    parseTable(reaction.reactionSeed.rule)),
                 t: 2,
                 spacetime: new Uint8Array([
-                    ...parseTable(selectedReaction.reactionSeed.reagent0),
-                    ...parseTable(selectedReaction.reactionSeed.reagent1),
+                    ...parseTable(reaction.reactionSeed.reagent0),
+                    ...parseTable(reaction.reactionSeed.reagent1),
                 ]),
             });
     }
@@ -74,15 +72,14 @@ export const performReactorTick = <
         reactionMultistepSize - reactionRepeatSearchWindow,
         reactionMultistepSize);
     if (repeatAtRel !== -1) {
-        return update(selectedReaction, {
-            t: { $set: reactionState.t },
+        reaction = update(reaction, {
             repeatAt: {
                 $set: reactionState.t - reactionMultistepSize + repeatAtRel,
             },
         });
-    } else {
-        return update(selectedReaction, {
-            t: { $set: reactionState.t },
-        });
     }
+
+    return update(reaction, {
+        t: { $set: reactionState.t },
+    });
 };

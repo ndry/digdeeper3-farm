@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from "react";
 import { jsx } from "@emotion/react";
 import { createImageData32, cssColorToAbgr } from "../../../utils/create-image-data32";
 import { getMutableState } from "../model/perform-reactor-tick";
-import { ReactionCard } from "./reactions-recoil";
+import { ReactionCard } from "../model/reaction-card";
 import { prepareSpacetime81 } from "../model/prepare-spacetime81";
 import { parseTable } from "../../../ca237v1/rule-io";
 import { fillPrestartedSpacetime81UsingCyclicBorders } from "../model/fill-prestarted-spacetime81-using-cyclic-borders";
