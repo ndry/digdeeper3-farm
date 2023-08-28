@@ -6,7 +6,7 @@ import { StateProp } from "../../../utils/reactish/state-prop";
 import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview";
 import { ReactionCardCanvas } from "./reaction-card-canvas";
 import { parseTable } from "../../../ca237v1/rule-io";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 
 
 const update1 = <T,>(spec: Spec<T>) => (obj: T) => update(obj, spec);
@@ -45,6 +45,11 @@ export function ReactionCardView({
     } = reactionCard;
 
     const [mark, setMark] = useState("");
+    useLayoutEffect(() => {
+        if (mark === "" && "repeat" in marks) {
+            setMark("repeat");
+        }
+    }, [mark, marks]);
 
     return <div {...props}>
         &#x2b4d;<LinkCaPreview substance={rule} />

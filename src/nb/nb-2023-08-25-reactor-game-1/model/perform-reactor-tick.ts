@@ -46,7 +46,7 @@ export const performReactorTick = (
         reactionMultistepSize);
     if (repeatAtRel !== -1) {
         const repeatAt = t - reactionMultistepSize + repeatAtRel;
-        const markTRel = Math.max(0, repeatAtRel - 200);
+        const markTRel = Math.max(0, repeatAtRel - 350);
         const markT = t - reactionMultistepSize + markTRel;
         reaction = update(reaction, {
             repeatAt: { $set: repeatAt },

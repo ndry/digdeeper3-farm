@@ -1,4 +1,4 @@
-import { selectByWeight } from "../../../utils/select-by-weight";
+import { selectIndexByWeight } from "../../../utils/select-by-weight";
 import { performReactorTick } from "./perform-reactor-tick";
 import { ReactionCard } from "./reaction-card";
 
@@ -15,23 +15,38 @@ function tick() {
     if (!isRunning) { return; }
     if (reactions.length === 0) { return; }
 
+    const subtickCount = 50;
+    const reactionMultistepSize = 1500;
+    const reactionMultistepsPerTick = 20;
+    let steps = 0;
+
     const perfStart = performance.now();
-    const selectedReaction = selectByWeight(
-        reactions,
-        r => r.priority,
-        Math.random(), // TODO: use a seeded random number generator
-    );
-    const selectedReaction1 = performReactorTick(selectedReaction, {
-        reactionMultistepSize: 1500,
-        reactionMultistepsPerTick: 100,
-        reactionRepeatSearchWindow: 1000,
-    });
+    const indices = new Set<number>();
+    for (let i = 0; i < subtickCount; i++) {
+        const selectedReactionIndex = selectIndexByWeight(
+            reactions,
+            r => r.priority,
+            Math.random(), // TODO: use a seeded random number generator
+        );
+        const selectedReaction = reactions[selectedReactionIndex];
+        if (selectedReaction.repeatAt !== undefined) { continue; }
+        indices.add(selectedReactionIndex);
+        const selectedReaction1 = performReactorTick(selectedReaction, {
+            reactionMultistepSize,
+            reactionMultistepsPerTick,
+            reactionRepeatSearchWindow: 1500,
+        });
+
+        reactions[selectedReactionIndex] = selectedReaction1; // in-place update
+        steps += reactionMultistepSize * reactionMultistepsPerTick;
+    }
     const perfEnd = performance.now();
 
     postMessage({
         type: "tick",
         perf: perfEnd - perfStart,
-        reaction: selectedReaction1,
+        steps,
+        reactions: [...indices].map(i => reactions[i]),
     });
 
     scheduleTick();
