@@ -32,7 +32,7 @@ export function ReactionCardListView({
                 .filter(r => r.isTrashed);
             case "repeated": return reactions
                 .filter(r => r.repeatAt !== undefined)
-                .toSorted((a, b) => a.repeatAt! - b.repeatAt!);
+                .toSorted((a, b) => b.repeatAt! - a.repeatAt!);
             case "all":
             default:
                 return reactions;

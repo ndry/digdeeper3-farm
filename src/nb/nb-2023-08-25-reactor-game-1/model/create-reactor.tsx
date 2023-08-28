@@ -40,7 +40,6 @@ export const createReactor = ({
 
 
         const selectedReaction1 = performReactorTick(selectedReaction, {
-            mutableStorageKey: "sdsd223",
             reactionMultistepSize: 1500,
             reactionMultistepsPerTick: 100,
             reactionRepeatSearchWindow: 1000,

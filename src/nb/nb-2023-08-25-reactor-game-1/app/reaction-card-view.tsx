@@ -39,6 +39,7 @@ export function ReactionCardView({
             reagent0,
             reagent1,
         },
+        last281,
         ...rest
     } = reactionCard;
     return <div {...props}>

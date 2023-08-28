@@ -4,6 +4,7 @@ import update from "immutability-helper";
 import { ca237v1FromSeed } from "../../nb-2023-08-13-reactor-game/ca237v1-from-seed";
 import { HmacSHA256 } from "crypto-js";
 import { ReactionCard } from "../model/reaction-card";
+import { parseTable } from "../../../ca237v1/rule-io";
 
 const generateReactionSeed = (i: number) => ({
     rule: ca237v1FromSeed(HmacSHA256(`${i}_rule`, "the-seed")),
@@ -13,14 +14,21 @@ const generateReactionSeed = (i: number) => ({
 
 const gererateReactionCards = (count: number) => (reactions: ReactionCard[]) =>
     update(reactions, {
-        $push: Array.from({ length: count }, (_, i) => ({
-            reactionSeed: generateReactionSeed(reactions.length + i),
-            priority: 1,
-            isPaused: false,
-            isTrashed: false,
-            t: 2,
-            repeatAt: undefined,
-        })),
+        $push: Array.from({ length: count }, (_, i) => {
+            const reactionSeed = generateReactionSeed(reactions.length + i);
+            return ({
+                reactionSeed,
+                priority: 1,
+                isPaused: false,
+                isTrashed: false,
+                t: 2,
+                repeatAt: undefined,
+                last281: new Uint8Array([
+                    ...parseTable(reactionSeed.reagent0),
+                    ...parseTable(reactionSeed.reagent1),
+                ]),
+            });
+        }),
     });
 
 
