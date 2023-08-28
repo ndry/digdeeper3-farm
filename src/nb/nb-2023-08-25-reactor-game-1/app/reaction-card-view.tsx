@@ -42,32 +42,10 @@ export function ReactionCardView({
         ...rest
     } = reactionCard;
     return <div {...props}>
-        <br />
-        <JsonButton obj={reactionCard} />
-        <br />
-        Rule: <LinkCaPreview substance={rule} />
-        <br />
-        Reagent0: <LinkCaPreview substance={reagent0} />
-        <br />
-        Reagent1: <LinkCaPreview substance={reagent1} />
-        <br />
-        priority: {priority} <br />
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p + 1))}>+1</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p + 10))}>+10</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p + 100))}>+100</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p + 1000))}>+1000</button>
-        <br />
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p - 1))}>-1</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p - 10))}>-10</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p - 100))}>-100</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(p => p - 1000))}>-1000</button>
-        <br />
-        <button onClick={() => setReactionCard(updReactionCardPriority(1))}>=1</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(10))}>=10</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(100))}>=100</button>
-        <button onClick={() => setReactionCard(updReactionCardPriority(1000))}>=1000</button>
-        <br />
-        <button
+        &#x2b4d;<LinkCaPreview substance={rule} />
+        &nbsp;+ &#x269B;<LinkCaPreview substance={reagent0} />
+        &nbsp;+ &#x269B;<LinkCaPreview substance={reagent1} />
+        &nbsp;<button
             onClick={() =>
                 setReactionCard(update1({ isPaused: { $apply: p => !p } }))}
         >{isPaused ? "Resume" : "Pause"}</button>
@@ -76,7 +54,25 @@ export function ReactionCardView({
                 setReactionCard(update1({ isTrashed: { $apply: p => !p } }))}
         >{isTrashed ? "Restore" : "Trash"}</button>
         <br />
-        t: {t} / repeatAt: {repeatAt ?? "?"}
+        P {priority.toString().padStart(4, ".")}
+        &nbsp;
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p + 1))}>+1</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p + 10))}>+10</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p + 100))}>+100</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p + 1000))}>+1k</button>
+        /
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p - 1))}>-1</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p - 10))}>-10</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p - 100))}>-100</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(p => p - 1000))}>-1k</button>
+        /
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(1))}>=1</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(10))}>=10</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(100))}>=100</button>
+        <button className="short" onClick={() => setReactionCard(updReactionCardPriority(1000))}>=1k</button>
+        <br />
+        t: {t} / repeatAt: {repeatAt ?? "?"} /
+        &nbsp;<JsonButton obj={reactionCard} />
         <br />
         <ReactionCardCanvas reactionCard={reactionCard} />
         {Object.keys(rest).length > 0

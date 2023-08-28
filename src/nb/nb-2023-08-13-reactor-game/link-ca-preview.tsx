@@ -3,7 +3,13 @@ import { RulePreview } from "../../app/rule-preview";
 import { Rule } from "../../ca237v1/rule-io";
 
 
-export function LinkCaPreview({ substance }: { substance: Rule }) {
+export function LinkCaPreview({
+    substance,
+    fullText,
+}: {
+    substance: Rule,
+    fullText?: boolean,
+}) {
     const [isHovered, setIsHovered] = useState(false);
 
     const refLink = useRef<HTMLAnchorElement | null>(null);
@@ -30,35 +36,38 @@ export function LinkCaPreview({ substance }: { substance: Rule }) {
 
     }, []);
 
-    return <>
-        <a
-            ref={refLink}
-            href={"./notes/?" + (() => {
-                const s = new URLSearchParams();
-                s.set("filter", JSON.stringify({ tags: substance }));
-                return s.toString();
+    const text =
+        fullText
+            ? substance
+            : substance.replace(/(.*_\d\d)(.*)(\d\d)/, "$1\u2026$3");
 
-            })()}
-            css={{ position: "relative" }}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-        >
-            {substance}
-            {isHovered
-                && <div
-                    css={{
-                        position: "absolute",
-                        width: "fit-content",
-                        top: isLow ? "0px" : "auto",
-                        bottom: !isLow ? "0px" : "auto",
-                        left: "100%",
-                        backgroundColor: "#000000",
-                        zIndex: 100,
-                        paddingLeft: "0.5em",
-                    }}>
-                    <RulePreview code={substance} />
-                </div>}
-        </a>
+    return <a
+        ref={refLink}
+        href={"./notes/?" + (() => {
+            const s = new URLSearchParams();
+            s.set("filter", JSON.stringify({ tags: substance }));
+            return s.toString();
 
-    </>;
+        })()}
+        css={{ position: "relative" }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+    >
+        {text}
+        {isHovered
+            && <div
+                css={{
+                    position: "absolute",
+                    width: "fit-content",
+                    top: isLow ? "0px" : "auto",
+                    bottom: !isLow ? "0px" : "auto",
+                    left: "100%",
+                    backgroundColor: "#000000",
+                    zIndex: 100,
+                    paddingLeft: "0.5em",
+                }}>
+                {substance}
+                <RulePreview code={substance} />
+            </div>}
+    </a>;
 }
