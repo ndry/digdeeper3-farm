@@ -41,6 +41,7 @@ export function ReactorView({
                         [index]: {
                             t: { $set: e.data.reaction.t },
                             last281: { $set: e.data.reaction.last281 },
+                            repeatAt: { $set: e.data.reaction.repeatAt },
                         },
                     });
                 });
