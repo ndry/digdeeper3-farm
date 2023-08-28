@@ -23,13 +23,13 @@ export const retroThemeCss = [{
         content: "[\\00a0\\00a0";
     }
     & button:focus::before {
-        content: "[\\00a0-";
+        content: "[\\00b7\\00a0";
     }
     & button::after {
         content: "\\00a0\\00a0]";
     }
     & button:focus::after {
-        content: "-\\00a0]";
+        content: "\\00a0\\00b7]";
     }
 
     & button:disabled {
