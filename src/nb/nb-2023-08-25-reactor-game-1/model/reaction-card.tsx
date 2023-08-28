@@ -9,4 +9,8 @@ export type ReactionCard = {
     t: number,
     last281: Uint8Array,
     repeatAt: number | undefined,
+    marks: Record<string, {
+        t: number,
+        last281: Uint8Array,
+    }>,
 };

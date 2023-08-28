@@ -45,9 +45,35 @@ export const performReactorTick = (
         reactionMultistepSize - reactionRepeatSearchWindow,
         reactionMultistepSize);
     if (repeatAtRel !== -1) {
+        const repeatAt = t - reactionMultistepSize + repeatAtRel;
+        const markTRel = Math.max(0, repeatAtRel - 200);
+        const markT = t - reactionMultistepSize + markTRel;
         reaction = update(reaction, {
-            repeatAt: {
-                $set: t - reactionMultistepSize + repeatAtRel,
+            repeatAt: { $set: repeatAt },
+            marks: {
+                start: {
+                    $set: {
+                        t: 2,
+                        last281: new Uint8Array([
+                            ...parseTable(reaction.reactionSeed.reagent0),
+                            ...parseTable(reaction.reactionSeed.reagent1),
+                        ]),
+                    },
+                },
+                lastNonRepeat: {
+                    $set: {
+                        t: reaction.t,
+                        last281: reaction.last281,
+                    },
+                },
+                repeat: {
+                    $set: {
+                        t: markT + 2,
+                        last281: spacetime.slice(
+                            markTRel * 81,
+                            (markTRel + 2) * 81),
+                    },
+                },
             },
         });
     }

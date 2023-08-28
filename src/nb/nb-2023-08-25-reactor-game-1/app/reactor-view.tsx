@@ -42,6 +42,7 @@ export function ReactorView({
                             t: { $set: e.data.reaction.t },
                             last281: { $set: e.data.reaction.last281 },
                             repeatAt: { $set: e.data.reaction.repeatAt },
+                            marks: { $set: e.data.reaction.marks },
                         },
                     });
                 });

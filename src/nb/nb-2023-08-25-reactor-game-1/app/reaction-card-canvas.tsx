@@ -1,8 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { jsx } from "@emotion/react";
 import { createImageData32, cssColorToAbgr } from "../../../utils/create-image-data32";
-import { ReactionCard } from "../model/reaction-card";
-import { parseTable } from "../../../ca237v1/rule-io";
 import { fillPrestartedSpacetime81UsingCyclicBorders } from "../model/fill-prestarted-spacetime81-using-cyclic-borders";
 
 
@@ -14,9 +12,10 @@ export const colorMap = [
 
 
 export function ReactionCardCanvas({
-    reactionCard, ...props
+    last281, table, ...props
 }: jsx.JSX.IntrinsicElements["canvas"] & {
-    reactionCard: ReactionCard;
+    last281: Uint8Array,
+    table: number[]
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -33,9 +32,8 @@ export function ReactionCardCanvas({
         const ctx = canvasEl.getContext("2d");
         if (!ctx) { return; }
 
-        spacetime.set(reactionCard.last281);
-        fillPrestartedSpacetime81UsingCyclicBorders(
-            spacetime, parseTable(reactionCard.reactionSeed.rule));
+        spacetime.set(last281);
+        fillPrestartedSpacetime81UsingCyclicBorders(spacetime, table);
 
         for (let t = 0; t < imageData.width; t++) {
             for (let x = 0; x < 81; x++) {
@@ -47,7 +45,7 @@ export function ReactionCardCanvas({
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;
         ctx.putImageData(imageData, 0, 0);
-    }, [reactionCard, imageData32, spacetime]);
+    }, [last281, table, imageData32, spacetime]);
 
     return <canvas ref={canvasRef} {...props} />;
 }

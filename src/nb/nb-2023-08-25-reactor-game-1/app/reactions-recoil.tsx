@@ -27,6 +27,7 @@ const gererateReactionCards = (count: number) => (reactions: ReactionCard[]) =>
                     ...parseTable(reactionSeed.reagent0),
                     ...parseTable(reactionSeed.reagent1),
                 ]),
+                marks: {},
             });
         }),
     });

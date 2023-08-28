@@ -1,11 +1,12 @@
 import { jsx } from "@emotion/react";
 import update, { Spec } from "immutability-helper";
 import { ReactionCard } from "../model/reaction-card";
-import jsonBeautify from "json-beautify";
 import { JsonButton } from "../../nb-2023-08-13-reactor-game/json-button";
 import { StateProp } from "../../../utils/reactish/state-prop";
 import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview";
 import { ReactionCardCanvas } from "./reaction-card-canvas";
+import { parseTable } from "../../../ca237v1/rule-io";
+import { useState } from "react";
 
 
 const update1 = <T,>(spec: Spec<T>) => (obj: T) => update(obj, spec);
@@ -40,8 +41,11 @@ export function ReactionCardView({
             reagent1,
         },
         last281,
-        ...rest
+        marks,
     } = reactionCard;
+
+    const [mark, setMark] = useState("");
+
     return <div {...props}>
         &#x2b4d;<LinkCaPreview substance={rule} />
         &nbsp;+ &#x269B;<LinkCaPreview substance={reagent0} />
@@ -75,8 +79,19 @@ export function ReactionCardView({
         t: {t} / repeatAt: {repeatAt ?? "?"} /
         &nbsp;<JsonButton obj={reactionCard} />
         <br />
-        <ReactionCardCanvas reactionCard={reactionCard} />
-        {Object.keys(rest).length > 0
-            && <pre>rest: {jsonBeautify(rest, null as any, 2, 80)}</pre>}
+        <ReactionCardCanvas
+            last281={
+                mark === ""
+                    ? last281
+                    : marks[mark]?.last281
+            }
+            table={parseTable(rule)}
+        />
+        <br />
+        {Object.keys(marks).length > 0
+            && <select value={mark} onChange={e => setMark(e.target.value)}>
+                <option value={""}>--</option>
+                {Object.keys(marks).map(k => <option key={k} value={k}>{k}</option>)}
+            </select>}
     </div>;
 }
