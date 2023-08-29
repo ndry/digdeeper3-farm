@@ -1,9 +1,10 @@
+import memoize from "memoizee";
 import { getFullCombinedState } from "../../ca";
 import { parseTable } from "../../ca237v1/rule-io";
 import { stateCount } from "../../ca237v1/state-count";
 import { ReactionSeed } from "./model/perform-reactor-tick";
 
-export const getWidestSingleColorZone =
+export const getWidestSingleColorZone = memoize(
     (reactionSeed: ReactionSeed, tCap: number) => {
         const table = parseTable(reactionSeed.rule);
         let prevSpace = parseTable(reactionSeed.reagent0);
@@ -33,4 +34,4 @@ export const getWidestSingleColorZone =
             }
         }
         return maxMatch;
-    };
+    });

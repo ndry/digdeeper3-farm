@@ -41,7 +41,10 @@ export function ReactionCardListView({
     })();
 
     const [filterByColorMatch, setFilterByColorMatch] = useState(false);
-
+    const filteredReactions1 = filterByColorMatch ? filteredReactions.toSorted(
+        (a, b) => getWidestSingleColorZone(b.reactionSeed, 500)
+            - getWidestSingleColorZone(a.reactionSeed, 500),
+    ) : filteredReactions;  
     return <div {...props}>
         <select value={filter} onChange={e => setFilter(e.target.value as any)}>
             <option value="run-pool">run-pool</option>
@@ -58,15 +61,7 @@ export function ReactionCardListView({
         }} >
             <input
                 type="checkbox"
-                onChange={
-                    (e) => {
-                        if (e.target.checked) {
-                            setFilterByColorMatch(true);
-                        } else {
-                            setFilterByColorMatch(false);
-                        }
-                    }
-                }
+                onChange={(e) => setFilterByColorMatch(e.target.checked)}
                 css={{ margin: "0 5px 0 0 " }}
             />
             filter by color match
@@ -78,15 +73,7 @@ export function ReactionCardListView({
         &nbsp;<button onClick={() => generateReactionSeeds(3)}>+3</button>
         &nbsp;<button onClick={() => generateReactionSeeds(10)}>+10</button>
         &nbsp;<button onClick={() => generateReactionSeeds(100)}>+100</button>
-        {filteredReactions
-            .sort(
-                (a, b) => {
-                    if (filterByColorMatch) {
-                        return getWidestSingleColorZone(b.reactionSeed, 500)
-                            - getWidestSingleColorZone(a.reactionSeed, 500);
-                    } else return 0; 
-                },
-            )
+        {filteredReactions1
             .map((r, i) => {
                 return <ReactionCardView
                     key={i}
