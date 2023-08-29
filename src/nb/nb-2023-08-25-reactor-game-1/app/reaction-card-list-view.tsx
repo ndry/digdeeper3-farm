@@ -62,6 +62,8 @@ export function ReactionCardListView({
                     (e) => {
                         if (e.target.checked) {
                             setFilterByColorMatch(true);
+                        } else {
+                            setFilterByColorMatch(false);
                         }
                     }
                 }
@@ -77,8 +79,14 @@ export function ReactionCardListView({
         &nbsp;<button onClick={() => generateReactionSeeds(10)}>+10</button>
         &nbsp;<button onClick={() => generateReactionSeeds(100)}>+100</button>
         {filteredReactions
-            .sort((a, b) => getWidestSingleColorZone(b.reactionSeed, 500)
-                - getWidestSingleColorZone(a.reactionSeed, 500))
+            .sort(
+                (a, b) => {
+                    if (filterByColorMatch) {
+                        return getWidestSingleColorZone(b.reactionSeed, 500)
+                            - getWidestSingleColorZone(a.reactionSeed, 500);
+                    } else return 0; 
+                },
+            )
             .map((r, i) => {
                 return <ReactionCardView
                     key={i}
