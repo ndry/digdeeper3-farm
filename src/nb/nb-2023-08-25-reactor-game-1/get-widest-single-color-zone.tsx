@@ -11,8 +11,6 @@ export const getWidestSingleColorZone = memoize(
         let space = parseTable(reactionSeed.reagent1);
 
         let maxMatch = 1;
-        let tempCountMatch = 1;
-
 
         for (let ti = 0; ti < tCap; ti++) {
             const nextSpace = space.map((_, x) => table[getFullCombinedState(
@@ -24,6 +22,7 @@ export const getWidestSingleColorZone = memoize(
 
             prevSpace = space;
             space = nextSpace;
+            let tempCountMatch = 1;
             for (let i = 0; i < space.length - 1; i++) {
                 if (space[i] === space[i + 1]) {
                     tempCountMatch++;
