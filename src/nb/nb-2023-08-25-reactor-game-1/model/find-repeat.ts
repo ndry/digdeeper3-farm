@@ -41,8 +41,8 @@ const twoSpace81Equals = (a: OffsetOnSpacetime, b: OffsetOnSpacetime) => {
 
 export const findRepeat = (
     spacetime: Uint8Array,
-    startT: number,
-    endT: number,
+    startT = 0,
+    endT = spacetime.length / 81 >>> 0,
 ) => {
     const sSet = new CustomHashSet<OffsetOnSpacetime, number>({
         hashFn: twoSpace81HashFast,

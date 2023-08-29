@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { jsx } from "@emotion/react";
 import { createImageData32, cssColorToAbgr } from "../../../utils/create-image-data32";
-import { fillPrestartedSpacetime81UsingCyclicBorders } from "../model/fill-prestarted-spacetime81-using-cyclic-borders";
+import { fillPrestartedSpacetime81Pbc } from "../model/fill-prestarted-spacetime81-pbc";
 
 
 export const colorMap = [
@@ -33,7 +33,7 @@ export function ReactionCardCanvas({
         if (!ctx) { return; }
 
         spacetime.set(last281);
-        fillPrestartedSpacetime81UsingCyclicBorders(spacetime, table);
+        fillPrestartedSpacetime81Pbc(spacetime, table);
 
         for (let t = 0; t < imageData.width; t++) {
             for (let x = 0; x < 81; x++) {

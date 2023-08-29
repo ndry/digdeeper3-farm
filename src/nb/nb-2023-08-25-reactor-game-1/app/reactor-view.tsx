@@ -95,10 +95,24 @@ export function ReactorView({
         render: {renderTrigger}
         {perf && <>
             &nbsp;/&nbsp;
-            perf: {perf.steps} steps per {perf.perf.toFixed(2)}ms
-            ={(perf.steps / perf.perf * 1e3 / 1e6).toFixed(2)} MHz
+            perf: {formatWithSuffix(perf.steps)}
+            &nbsp;steps per {perf.perf.toFixed(2)}ms
+            ={formatWithSuffix(perf.steps / perf.perf * 1000)}Hz
         </>}
 
         <br />
     </div>;
+}
+
+export function formatWithSuffix(n: number): string {
+    if (n < 0) { return "-" + formatWithSuffix(-n); }
+    if (n < 1e-9) { return n.toExponential(2); }
+    if (n < 1e-6) { return (n * 1e6).toFixed(2) + "u"; }
+    if (n < 1e-3) { return (n * 1e3).toFixed(2) + "m"; }
+    if (n < 1e3) { return n.toString(); }
+    if (n < 1e6) { return (n / 1e3).toFixed(2) + "k"; }
+    if (n < 1e9) { return (n / 1e6).toFixed(2) + "M"; }
+    if (n < 1e12) { return (n / 1e9).toFixed(2) + "G"; }
+    if (n < 1e15) { return (n / 1e12).toFixed(2) + "T"; }
+    return n.toExponential(2);
 }

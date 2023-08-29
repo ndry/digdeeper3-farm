@@ -1,11 +1,10 @@
 
-/**
- * Optimized for performance
- */
-export function fillPrestartedSpacetime81UsingCyclicBorders(
+
+export function fillPrestartedSpacetime81Pbc(
     spacetime: Uint8Array,
     table: number[] | Uint8Array,
 ) {
+    // optimized for performance
     const len = spacetime.length - 2 * 81;
     for (let ppi = 0; ppi < len; ppi += 81) {
         const pi = ppi + 81;

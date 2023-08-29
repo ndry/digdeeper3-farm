@@ -16,8 +16,7 @@ function tick() {
     if (reactions.length === 0) { return; }
 
     const subtickCount = 50;
-    const reactionMultistepSize = 1500;
-    const reactionMultistepsPerTick = 20;
+    const dt = 30000;
     let steps = 0;
 
     const perfStart = performance.now();
@@ -32,13 +31,12 @@ function tick() {
         if (selectedReaction.repeatAt !== undefined) { continue; }
         indices.add(selectedReactionIndex);
         const selectedReaction1 = performReactorTick(selectedReaction, {
-            reactionMultistepSize,
-            reactionMultistepsPerTick,
+            dt,
             reactionRepeatSearchWindow: 1500,
         });
 
         reactions[selectedReactionIndex] = selectedReaction1; // in-place update
-        steps += reactionMultistepSize * reactionMultistepsPerTick;
+        steps += selectedReaction1.t - selectedReaction.t;
     }
     const perfEnd = performance.now();
 
