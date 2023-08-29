@@ -7,6 +7,7 @@ import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview"
 import { ReactionCardCanvas } from "./reaction-card-canvas";
 import { parseTable } from "../../../ca237v1/rule-io";
 import { useLayoutEffect, useState } from "react";
+import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
 
 
 const update1 = <T,>(spec: Spec<T>) => (obj: T) => update(obj, spec);
@@ -43,6 +44,9 @@ export function ReactionCardView({
         last281,
         marks,
     } = reactionCard;
+
+    const maxColorMatches =
+        getWidestSingleColorZone(reactionCard.reactionSeed, 500);
 
     const [mark, setMark] = useState("");
     useLayoutEffect(() => {
@@ -83,6 +87,7 @@ export function ReactionCardView({
         <br />
         t: {t} / repeatAt: {repeatAt ?? "?"} /
         &nbsp;<JsonButton obj={reactionCard} />
+        <span> Max color matches:&nbsp;{maxColorMatches} </span>
         <br />
         <ReactionCardCanvas
             last281={

@@ -4,7 +4,7 @@ import update from "immutability-helper";
 import { reactionsRecoil, useGenerateReactionSeeds } from "./reactions-recoil";
 import { ReactionCardView as _ReactionCardView } from "./reaction-card-view";
 import { memo, useState } from "react";
-import { getWidestSingleColorZone } from "../getWidestSingleColorZone";
+import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
 
 const eqStringify = <T,>(p: T, n: T) =>
     JSON.stringify(p) === JSON.stringify(n);
@@ -77,11 +77,10 @@ export function ReactionCardListView({
         &nbsp;<button onClick={() => generateReactionSeeds(10)}>+10</button>
         &nbsp;<button onClick={() => generateReactionSeeds(100)}>+100</button>
         {filteredReactions
+            .sort((a, b) => getWidestSingleColorZone(b.reactionSeed, 500)
+                - getWidestSingleColorZone(a.reactionSeed, 500))
             .map((r, i) => {
-                const maxColorMatches =
-                    getWidestSingleColorZone(r.reactionSeed, 500);
-
-                return <> <ReactionCardView
+                return <ReactionCardView
                     key={i}
                     reactionCardState={[
                         r,
@@ -94,9 +93,7 @@ export function ReactionCardListView({
                         border: "1px solid #00ff0040",
                         margin: "1px",
                     }}
-                />
-                    <span> Max color matches:&nbsp;{maxColorMatches} </span>
-                </>
+                />;
             })}
     </div >;
 }
