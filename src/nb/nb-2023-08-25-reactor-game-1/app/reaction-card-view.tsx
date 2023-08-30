@@ -8,6 +8,7 @@ import { ReactionCardCanvas } from "./reaction-card-canvas";
 import { parseTable } from "../../../ca237v1/rule-io";
 import { useLayoutEffect, useState } from "react";
 import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
+import * as ReactionSeed from "../model/reaction-seed";
 
 
 const update1 = <T,>(spec: Spec<T>) => (obj: T) => update(obj, spec);
@@ -36,14 +37,14 @@ export function ReactionCardView({
         isTrashed,
         repeatAt,
         t,
-        reactionSeed: {
-            rule,
-            reagent0,
-            reagent1,
-        },
+        reactionSeed,
         last281,
         marks,
     } = reactionCard;
+
+    const rule = ReactionSeed.getRule(reactionSeed);
+    const reagent0 = ReactionSeed.getReagent0(reactionSeed);
+    const reagent1 = ReactionSeed.getReagent1(reactionSeed);
 
     const maxColorMatches =
         getWidestSingleColorZone(reactionCard.reactionSeed, 500);

@@ -5,12 +5,12 @@ import { ca237v1FromSeed } from "../../nb-2023-08-13-reactor-game/ca237v1-from-s
 import { HmacSHA256 } from "crypto-js";
 import { ReactionCard } from "../model/reaction-card";
 import { parseTable } from "../../../ca237v1/rule-io";
+import * as ReactionSeed from "../model/reaction-seed";
 
-const generateReactionSeed = (i: number) => ({
-    rule: ca237v1FromSeed(HmacSHA256(`${i}_rule`, "the-seed")),
-    reagent0: ca237v1FromSeed(HmacSHA256(`${i}_reagent0`, "the-seed")),
-    reagent1: ca237v1FromSeed(HmacSHA256(`${i}_reagent1`, "the-seed")),
-});
+const generateReactionSeed = (i: number) => ReactionSeed.keyify(
+    ca237v1FromSeed(HmacSHA256(`${i}_rule`, "the-seed")),
+    ca237v1FromSeed(HmacSHA256(`${i}_reagent0`, "the-seed")),
+    ca237v1FromSeed(HmacSHA256(`${i}_reagent1`, "the-seed")));
 
 const gererateReactionCards = (count: number) => (reactions: ReactionCard[]) =>
     update(reactions, {
@@ -24,8 +24,8 @@ const gererateReactionCards = (count: number) => (reactions: ReactionCard[]) =>
                 t: 2,
                 repeatAt: undefined,
                 last281: new Uint8Array([
-                    ...parseTable(reactionSeed.reagent0),
-                    ...parseTable(reactionSeed.reagent1),
+                    ...parseTable(ReactionSeed.getReagent0(reactionSeed)),
+                    ...parseTable(ReactionSeed.getReagent1(reactionSeed)),
                 ]),
                 marks: {},
             });

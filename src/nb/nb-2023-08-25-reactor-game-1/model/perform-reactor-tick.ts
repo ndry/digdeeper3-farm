@@ -5,12 +5,8 @@ import { _never } from "../../../utils/_never";
 import update from "immutability-helper";
 import { ReactionCard } from "./reaction-card";
 import { evolveThreeSpace81PbcInPlace } from "./evolve-three-space81-pbc-in-place";
+import { getReagent0, getReagent1, getRule } from "./reaction-seed";
 
-export type ReactionSeed = {
-    rule: Rule,
-    reagent0: Rule,
-    reagent1: Rule,
-}
 
 let spacetime: Uint8Array;
 
@@ -28,7 +24,7 @@ export const performReactorTick = (
         reactionRepeatSearchWindow: number,
     },
 ) => {
-    const table = parseTable(reaction.reactionSeed.rule);
+    const table = parseTable(getRule(reaction.reactionSeed));
     let t = reaction.t;
 
     prevPrevSpace.set(reaction.last281.slice(0, 81));
@@ -55,8 +51,8 @@ export const performReactorTick = (
                     $set: {
                         t: 2,
                         last281: new Uint8Array([
-                            ...parseTable(reaction.reactionSeed.reagent0),
-                            ...parseTable(reaction.reactionSeed.reagent1),
+                            ...parseTable(getReagent0(reaction.reactionSeed)),
+                            ...parseTable(getReagent1(reaction.reactionSeed)),
                         ]),
                     },
                 },

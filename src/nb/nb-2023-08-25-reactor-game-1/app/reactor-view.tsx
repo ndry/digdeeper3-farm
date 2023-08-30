@@ -3,14 +3,10 @@ import { jsx } from "@emotion/react";
 import { useRecoilState } from "recoil";
 import { reactionsRecoil } from "./reactions-recoil";
 import update from "immutability-helper";
-import { ReactionSeed } from "../model/perform-reactor-tick";
 import { ReactionCard } from "../model/reaction-card";
 
 export const runByDefault =
     new URL(location.href).searchParams.get("run") == "1";
-
-export const eqReactionSeed = (a: ReactionSeed, b: ReactionSeed,) =>
-    a.rule === b.rule && a.reagent0 === b.reagent0 && a.reagent1 === b.reagent1;
 
 export function ReactorView({
     ...props
@@ -41,9 +37,10 @@ export function ReactorView({
                 setRenderTrigger(x => x + 1);
                 setReactions(reactions => {
                     for (const receivedReaction of ev.data.reactions) {
-                        const index = reactions.findIndex(r =>
-                            eqReactionSeed(
-                                r.reactionSeed, receivedReaction.reactionSeed));
+                        const index = reactions
+                            .findIndex(r =>
+                                r.reactionSeed
+                                === receivedReaction.reactionSeed);
 
                         if (index === -1) { continue; }
                         if (reactions[index].t >= receivedReaction.t) {

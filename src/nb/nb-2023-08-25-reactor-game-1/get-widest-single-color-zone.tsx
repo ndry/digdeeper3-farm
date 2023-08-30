@@ -2,13 +2,13 @@ import memoize from "memoizee";
 import { getFullCombinedState } from "../../ca";
 import { parseTable } from "../../ca237v1/rule-io";
 import { stateCount } from "../../ca237v1/state-count";
-import { ReactionSeed } from "./model/perform-reactor-tick";
+import * as ReactionSeed from "./model/reaction-seed";
 
 export const getWidestSingleColorZone = memoize(
-    (reactionSeed: ReactionSeed, tCap: number) => {
-        const table = parseTable(reactionSeed.rule);
-        let prevSpace = parseTable(reactionSeed.reagent0);
-        let space = parseTable(reactionSeed.reagent1);
+    (reactionSeed: ReactionSeed.ReactionSeed, tCap: number) => {
+        const table = parseTable(ReactionSeed.getRule(reactionSeed));
+        let prevSpace = parseTable(ReactionSeed.getReagent0(reactionSeed));
+        let space = parseTable(ReactionSeed.getReagent1(reactionSeed));
 
         let maxMatch = 1;
 

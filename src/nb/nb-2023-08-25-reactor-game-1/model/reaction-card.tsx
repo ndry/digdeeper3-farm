@@ -1,4 +1,4 @@
-import { ReactionSeed } from "./perform-reactor-tick";
+import { ReactionSeed } from "./reaction-seed";
 
 // todo: move view-specific stuff to view
 export type ReactionCard = {
