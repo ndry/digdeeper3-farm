@@ -1,6 +1,12 @@
+import { keyifyTable } from "../../../ca237v1/rule-io";
 import { selectIndexByWeight } from "../../../utils/select-by-weight";
 import { performReactorTick } from "./perform-reactor-tick";
 import { ReactionCard } from "./reaction-card";
+import { registerReactionOutput, subscribeToReactionOutputGlobal } from "./reaction-output-registry";
+import { getRule, keyify } from "./reaction-seed";
+
+
+
 
 let isRunning = false;
 let reactions = [] as ReactionCard[];
@@ -10,6 +16,13 @@ const scheduleTick = () => {
     clearTimeout(h);
     h = setTimeout(tick, 0);
 };
+
+const us1 = subscribeToReactionOutputGlobal(ro => {
+    postMessage({
+        type: "reactionOutput",
+        reactionOutput: ro,
+    });
+});
 
 function tick() {
     if (!isRunning) { return; }
@@ -37,6 +50,17 @@ function tick() {
 
         reactions[selectedReactionIndex] = selectedReaction1; // in-place update
         steps += selectedReaction1.t - selectedReaction.t;
+
+        registerReactionOutput({
+            seed: selectedReaction.reactionSeed,
+            t: selectedReaction1.t,
+            output: keyify(
+                getRule(selectedReaction.reactionSeed),
+                keyifyTable(selectedReaction.last281.slice(0, 81)),
+                keyifyTable(selectedReaction.last281.slice(81, 81 * 2)),
+            ),
+            tags: [],
+        });
     }
     const perfEnd = performance.now();
 

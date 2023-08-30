@@ -4,6 +4,7 @@ import { useRecoilState } from "recoil";
 import { reactionsRecoil } from "./reactions-recoil";
 import update from "immutability-helper";
 import { ReactionCard } from "../model/reaction-card";
+import { ReactionOutput, registerReactionOutput } from "../model/reaction-output-registry";
 
 export const runByDefault =
     new URL(location.href).searchParams.get("run") == "1";
@@ -28,15 +29,19 @@ export function ReactorView({
             perf: number,
             steps: number,
             reactions: ReactionCard[],
+        } | {
+            type: "reactionOutput",
+            reactionOutput: ReactionOutput,
         }>) => {
-            if (ev.data.type === "tick") {
+            const data = ev.data;
+            if (data.type === "tick") {
                 setPerf({
-                    perf: ev.data.perf,
-                    steps: ev.data.steps,
+                    perf: data.perf,
+                    steps: data.steps,
                 });
                 setRenderTrigger(x => x + 1);
                 setReactions(reactions => {
-                    for (const receivedReaction of ev.data.reactions) {
+                    for (const receivedReaction of data.reactions) {
                         const index = reactions
                             .findIndex(r =>
                                 r.reactionSeed
@@ -59,6 +64,9 @@ export function ReactorView({
                     return reactions;
                 });
                 return;
+            }
+            if (data.type === "reactionOutput") {
+                registerReactionOutput(data.reactionOutput);
             }
         }
         return reactorWorker;

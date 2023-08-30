@@ -4,7 +4,7 @@ export const getDigits = (n: bigint, base: number) =>
     [...n.toString(base)].map(Number).reverse();
 
 export const getNumberFromDigits = (
-    digits: ReadonlyArray<number>,
+    digits: ReadonlyArray<number> | Uint8Array,
     base: number,
 ) => {
     const basen = BigInt(base);

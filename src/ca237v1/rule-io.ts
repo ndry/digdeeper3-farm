@@ -32,7 +32,7 @@ export const parseTable = (rule: Rule) => {
 };
 
 export const keyifyTable =
-    (table: ReadonlyArray<number>): Rule =>
+    (table: ReadonlyArray<number> | Uint8Array): Rule =>
         `${i}_${getNumberFromDigits(table, stateCount)}`;
 
 export const isRule = guard(RuleDecoder);
