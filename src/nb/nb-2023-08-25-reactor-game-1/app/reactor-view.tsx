@@ -4,7 +4,7 @@ import { useRecoilState } from "recoil";
 import { reactionsRecoil } from "./reactions-recoil";
 import update from "immutability-helper";
 import { ReactionCard } from "../model/reaction-card";
-import { ReactionOutput, registerReactionOutput } from "../model/reaction-output-registry";
+import { ReactionOutput, hasSeedRepeated, registerReactionOutput } from "../model/reaction-output-registry";
 
 export const runByDefault =
     new URL(location.href).searchParams.get("run") == "1";
@@ -28,7 +28,6 @@ export function ReactorView({
             type: "tick",
             perf: number,
             steps: number,
-            reactions: ReactionCard[],
         } | {
             type: "reactionOutput",
             reactionOutput: ReactionOutput,
@@ -40,29 +39,6 @@ export function ReactorView({
                     steps: data.steps,
                 });
                 setRenderTrigger(x => x + 1);
-                setReactions(reactions => {
-                    for (const receivedReaction of data.reactions) {
-                        const index = reactions
-                            .findIndex(r =>
-                                r.reactionSeed
-                                === receivedReaction.reactionSeed);
-
-                        if (index === -1) { continue; }
-                        if (reactions[index].t >= receivedReaction.t) {
-                            continue;
-                        }
-
-                        reactions = update(reactions, {
-                            [index]: {
-                                t: { $set: receivedReaction.t },
-                                last281: { $set: receivedReaction.last281 },
-                                repeatAt: { $set: receivedReaction.repeatAt },
-                                marks: { $set: receivedReaction.marks },
-                            },
-                        });
-                    }
-                    return reactions;
-                });
                 return;
             }
             if (data.type === "reactionOutput") {
@@ -84,7 +60,7 @@ export function ReactorView({
             reactions: reactions
                 .filter(r => !r.isPaused
                     && !r.isTrashed
-                    && r.repeatAt === undefined
+                    && !hasSeedRepeated(r.reactionSeed)
                     && r.priority > 0),
         }),
         [reactorWorker, reactions]);

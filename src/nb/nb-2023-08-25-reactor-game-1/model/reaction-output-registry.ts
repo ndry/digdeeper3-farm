@@ -71,3 +71,15 @@ export const subscribeToReactionOutputGlobal = (
         if (i !== -1) { registerReactionGlobalSubscribers.splice(i, 1); }
     };
 };
+
+export const hasSeedRepeated = (reactionSeed: ReactionSeed) =>
+    reactionOutputRegistry[reactionSeed]?.outputs
+        .some(o => o.tags.includes("repeat")) ?? false;
+
+export const getLatestOutput = (reactionSeed: ReactionSeed) =>
+    reactionOutputRegistry[reactionSeed]?.outputs
+        .at(-1);
+
+export const getRepeatedAt = (reactionSeed: ReactionSeed) =>
+    reactionOutputRegistry[reactionSeed]?.outputs
+        .find(o => o.tags.includes("repeat"))?.t;

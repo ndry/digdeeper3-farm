@@ -1,9 +1,8 @@
-import { keyifyTable } from "../../../ca237v1/rule-io";
 import { selectIndexByWeight } from "../../../utils/select-by-weight";
 import { performReactorTick } from "./perform-reactor-tick";
 import { ReactionCard } from "./reaction-card";
-import { registerReactionOutput, subscribeToReactionOutputGlobal } from "./reaction-output-registry";
-import { getRule, keyify } from "./reaction-seed";
+import { getLatestOutput, hasSeedRepeated, reactionOutputRegistry, registerReactionOutput, subscribeToReactionOutputGlobal } from "./reaction-output-registry";
+import { ReactionSeed } from "./reaction-seed";
 
 
 
@@ -30,7 +29,7 @@ function tick() {
 
     const subtickCount = 50;
     const dt = 30000;
-    let steps = 0;
+    let steps1 = 0;
 
     const perfStart = performance.now();
     const indices = new Set<number>();
@@ -41,34 +40,35 @@ function tick() {
             Math.random(), // TODO: use a seeded random number generator
         );
         const selectedReaction = reactions[selectedReactionIndex];
-        if (selectedReaction.repeatAt !== undefined) { continue; }
+        const latestOuput = getLatestOutput(selectedReaction.reactionSeed);
+        if (hasSeedRepeated(selectedReaction.reactionSeed)) { continue; }
         indices.add(selectedReactionIndex);
-        const selectedReaction1 = performReactorTick(selectedReaction, {
-            dt,
-            reactionRepeatSearchWindow: 1500,
-        });
+        const { outputs, steps } = performReactorTick(
+            latestOuput?.output ?? selectedReaction.reactionSeed,
+            {
+                dt,
+                reactionRepeatSearchWindow: 1500,
+            });
+        for (const output of outputs) {
+            registerReactionOutput(output);
+            if (latestOuput) {
+                registerReactionOutput({
+                    seed: selectedReaction.reactionSeed,
+                    t: output.t + latestOuput.t,
+                    output: output.output,
+                    tags: output.tags,
+                });
+            }
+        }
 
-        reactions[selectedReactionIndex] = selectedReaction1; // in-place update
-        steps += selectedReaction1.t - selectedReaction.t;
-
-        registerReactionOutput({
-            seed: selectedReaction.reactionSeed,
-            t: selectedReaction1.t,
-            output: keyify(
-                getRule(selectedReaction.reactionSeed),
-                keyifyTable(selectedReaction.last281.slice(0, 81)),
-                keyifyTable(selectedReaction.last281.slice(81, 81 * 2)),
-            ),
-            tags: [],
-        });
+        steps1 += steps;
     }
     const perfEnd = performance.now();
 
     postMessage({
         type: "tick",
         perf: perfEnd - perfStart,
-        steps,
-        reactions: [...indices].map(i => reactions[i]),
+        steps: steps1,
     });
 
     scheduleTick();

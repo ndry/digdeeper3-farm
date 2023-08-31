@@ -3,8 +3,9 @@ import { useRecoilState } from "recoil";
 import update from "immutability-helper";
 import { reactionsRecoil, useGenerateReactionSeeds } from "./reactions-recoil";
 import { ReactionCardView as _ReactionCardView } from "./reaction-card-view";
-import { memo, useState } from "react";
+import { memo, useLayoutEffect, useState } from "react";
 import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
+import { getRepeatedAt, hasSeedRepeated, subscribeToReactionOutputGlobal } from "../model/reaction-output-registry";
 
 const eqStringify = <T,>(p: T, n: T) =>
     JSON.stringify(p) === JSON.stringify(n);
@@ -17,6 +18,12 @@ export function ReactionCardListView({
 }: jsx.JSX.IntrinsicElements["div"] & {
     num?: number,
 }) {
+    const [renderTrigger, setRenderTrigger] = useState(0);
+    useLayoutEffect(() => {
+        return subscribeToReactionOutputGlobal(() => {
+            setRenderTrigger(x => x + 1);
+        });
+    }, []);
     const [reactions, setReactions] = useRecoilState(reactionsRecoil);
     const generateReactionSeeds = useGenerateReactionSeeds();
     const [filter, setFilter] = useState([
@@ -27,13 +34,15 @@ export function ReactionCardListView({
     const filteredReactions = (() => {
         switch (filter) {
             case "run-pool": return reactions
-                .filter(r => !r.isTrashed && r.repeatAt === undefined)
+                .filter(r => !r.isTrashed && !hasSeedRepeated(r.reactionSeed))
                 .toSorted((a, b) => b.priority - a.priority);
             case "trashed": return reactions
                 .filter(r => r.isTrashed);
             case "repeated": return reactions
-                .filter(r => r.repeatAt !== undefined)
-                .toSorted((a, b) => b.repeatAt! - a.repeatAt!);
+                .filter(r => hasSeedRepeated(r.reactionSeed))
+                .toSorted((a, b) =>
+                    getRepeatedAt(a.reactionSeed)!
+                    - getRepeatedAt(b.reactionSeed)!);
             case "all":
             default:
                 return reactions;
@@ -44,7 +53,7 @@ export function ReactionCardListView({
     const filteredReactions1 = filterByColorMatch ? filteredReactions.toSorted(
         (a, b) => getWidestSingleColorZone(b.reactionSeed, 500)
             - getWidestSingleColorZone(a.reactionSeed, 500),
-    ) : filteredReactions;  
+    ) : filteredReactions;
     return <div {...props}>
         <select value={filter} onChange={e => setFilter(e.target.value as any)}>
             <option value="run-pool">run-pool</option>
@@ -76,7 +85,7 @@ export function ReactionCardListView({
         {filteredReactions1
             .map((r, i) => {
                 return <ReactionCardView
-                    key={i}
+                    key={r.reactionSeed}
                     reactionCardState={[
                         r,
                         (r1) => setReactions(reactions => update(reactions, {
