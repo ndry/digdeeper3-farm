@@ -6,6 +6,7 @@ import { ReactionCardView as _ReactionCardView } from "./reaction-card-view";
 import { memo, useLayoutEffect, useState } from "react";
 import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
 import { getRepeatedAt, hasSeedRepeated, subscribeToReactionOutputGlobal } from "../model/reaction-output-registry";
+import { getStepIndicators } from "./get-step-indicators";
 
 const eqStringify = <T,>(p: T, n: T) =>
     JSON.stringify(p) === JSON.stringify(n);
@@ -55,6 +56,11 @@ export function ReactionCardListView({
             - getWidestSingleColorZone(a.reactionSeed, 500),
     ) : filteredReactions;
     return <div {...props}>
+        <p css={{ margin: "0 0 0.4em 0" }}>
+            steps:&nbsp;{getStepIndicators(reactions).steps}&nbsp;
+            repeatAt:&nbsp;{getStepIndicators(reactions).repeatAt}&nbsp;
+            stepRatio:&nbsp;{getStepIndicators(reactions).stepRatio}
+        </p>
         <select value={filter} onChange={e => setFilter(e.target.value as any)}>
             <option value="run-pool">run-pool</option>
             <option value="none">none</option>
