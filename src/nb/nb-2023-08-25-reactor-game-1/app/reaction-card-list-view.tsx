@@ -4,9 +4,9 @@ import update from "immutability-helper";
 import { reactionsRecoil, useGenerateReactionSeeds } from "./reactions-recoil";
 import { ReactionCardView as _ReactionCardView } from "./reaction-card-view";
 import { memo, useLayoutEffect, useState } from "react";
-import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
+import { getWidestSingleColorZone } from "../model/get-widest-single-color-zone";
 import { getRepeatedAt, hasSeedRepeated, subscribeToReactionOutputGlobal } from "../model/reaction-output-registry";
-import { getStepIndicators } from "./get-step-indicators";
+import { getStepIndicators } from "../model/get-step-indicators";
 import { formatWithSuffix } from "./reactor-view";
 
 const eqStringify = <T,>(p: T, n: T) =>

@@ -1,5 +1,5 @@
-import { ReactionCard } from "../model/reaction-card";
-import { getLatestOutput, getRepeatedAt } from "../model/reaction-output-registry";
+import { ReactionCard } from "./reaction-card";
+import { getLatestOutput, getRepeatedAt } from "./reaction-output-registry";
 
 
 export function getStepIndicators(reactions: ReactionCard[]): {

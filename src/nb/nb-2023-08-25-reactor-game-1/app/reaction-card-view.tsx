@@ -7,7 +7,7 @@ import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview"
 import { ReactionCardCanvas } from "./reaction-card-canvas";
 import { parseTable } from "../../../ca237v1/rule-io";
 import { useLayoutEffect, useState } from "react";
-import { getWidestSingleColorZone } from "../get-widest-single-color-zone";
+import { getWidestSingleColorZone } from "../model/get-widest-single-color-zone";
 import * as ReactionSeed from "../model/reaction-seed";
 import { ReactionOutput, reactionOutputRegistry, subscribeToReactionOutput } from "../model/reaction-output-registry";
 

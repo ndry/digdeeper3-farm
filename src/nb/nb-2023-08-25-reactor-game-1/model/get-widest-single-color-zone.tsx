@@ -1,8 +1,8 @@
 import memoize from "memoizee";
-import { getFullCombinedState } from "../../ca";
-import { parseTable } from "../../ca237v1/rule-io";
-import { stateCount } from "../../ca237v1/state-count";
-import * as ReactionSeed from "./model/reaction-seed";
+import { getFullCombinedState } from "../../../ca";
+import { parseTable } from "../../../ca237v1/rule-io";
+import { stateCount } from "../../../ca237v1/state-count";
+import * as ReactionSeed from "./reaction-seed";
 
 export const getWidestSingleColorZone = memoize(
     (reactionSeed: ReactionSeed.ReactionSeed, tCap: number) => {
