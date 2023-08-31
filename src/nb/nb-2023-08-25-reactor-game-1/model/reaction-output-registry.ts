@@ -14,16 +14,19 @@ export const reactionOutputRegistry = {} as Record<ReactionSeed, {
     ) => void>,
     outputs: Array<ReactionOutput>,
 }>;
+export const getReactionOutputRegistryEntry = (seed: ReactionSeed) =>
+    reactionOutputRegistry[seed] ??= {
+        subscribers: [],
+        outputs: [],
+    };
+
 const registerReactionGlobalSubscribers = [] as Array<(
     ro: ReactionOutput,
     r: typeof reactionOutputRegistry,
 ) => void>;
 
 export const registerReactionOutput = (output: ReactionOutput) => {
-    const rg = (reactionOutputRegistry[output.seed] ??= {
-        subscribers: [],
-        outputs: [],
-    });
+    const rg = getReactionOutputRegistryEntry(output.seed);
     let added = false;
     for (let i = 0; i < rg.outputs.length; i++) {
         if (rg.outputs[i].t > output.t) {
@@ -48,10 +51,7 @@ export const subscribeToReactionOutput = (
         r: typeof reactionOutputRegistry,
     ) => void,
 ) => {
-    const rg = (reactionOutputRegistry[seed] ??= {
-        subscribers: [],
-        outputs: [],
-    });
+    const rg = getReactionOutputRegistryEntry(seed);
     rg.subscribers.push(subscriber);
     return () => {
         const i = rg.subscribers.indexOf(subscriber);
