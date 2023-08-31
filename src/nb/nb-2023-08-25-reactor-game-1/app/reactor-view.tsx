@@ -87,9 +87,9 @@ export function ReactorView({
 
 export function formatWithSuffix(n: number): string {
     if (n < 0) { return "-" + formatWithSuffix(-n); }
-    if (n < 1e-9) { return n.toExponential(2); }
-    if (n < 1e-6) { return (n * 1e6).toFixed(2) + "u"; }
-    if (n < 1e-3) { return (n * 1e3).toFixed(2) + "m"; }
+    if (n < 1e-6) { return n.toExponential(2); }
+    if (n < 1e-3) { return (n * 1e6).toFixed(2) + "u"; }
+    if (n < 1e0) { return (n * 1e3).toFixed(2) + "m"; }
     if (n < 1e3) { return n.toString(); }
     if (n < 1e6) { return (n / 1e3).toFixed(2) + "k"; }
     if (n < 1e9) { return (n / 1e6).toFixed(2) + "M"; }

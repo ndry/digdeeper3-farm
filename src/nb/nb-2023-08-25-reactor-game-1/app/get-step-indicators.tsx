@@ -1,4 +1,5 @@
 import { ReactionCard } from "../model/reaction-card";
+import { getLatestOutput, getRepeatedAt } from "../model/reaction-output-registry";
 
 
 export function getStepIndicators(reactions: ReactionCard[]): {
@@ -8,12 +9,12 @@ export function getStepIndicators(reactions: ReactionCard[]): {
     let repeatAt = 0;
 
     for (const reaction of reactions) {
-        steps = steps + reaction.t;
-        reaction.repeatAt && (repeatAt = repeatAt + reaction.repeatAt);
+        steps += getLatestOutput(reaction.reactionSeed)?.t ?? 0;
+        repeatAt += getRepeatedAt(reaction.reactionSeed) ?? 0;
     }
     return {
         steps,
         repeatAt,
-        stepRatio: repeatAt !== 0 ? steps / repeatAt : 0,
+        stepRatio: repeatAt / steps,
     };
 }
