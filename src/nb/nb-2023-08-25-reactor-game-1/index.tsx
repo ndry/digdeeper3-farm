@@ -1,9 +1,6 @@
 import { retroThemeCss } from "../nb-2023-07-06/retro-theme-css";
-import type * as CryptoJS from "crypto-js";
-export type WordArray = CryptoJS.lib.WordArray;
 import { ReactionCardListView } from "./app/reaction-card-list-view";
 import { ReactorView } from "./app/reactor-view";
-import { ReactionOutputRegisterView } from "./app/reaction-output-register-view";
 
 export default function Component() {
     return (
