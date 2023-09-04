@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import { jsx } from "@emotion/react";
 import { useRecoilState } from "recoil";
 import { reactionsRecoil } from "./reactions-recoil";
-import { ReactionOutput, getLatestOutput, registerReactionOutput } from "../model/reaction-output-registry";
+import { ReactionOutput, getLatestOutput, hasSeedRepeated, registerReactionOutput } from "../model/reaction-output-registry";
 import { ReactorWorkerJob } from "../model/reactor.worker";
 import { selectByWeight } from "../../../utils/select-by-weight";
 
@@ -66,7 +66,11 @@ export function ReactorView({
             const data = ev.data;
             if (data.type !== "jobRequest") { return; }
             const rc = selectByWeight(
-                reactions,
+                reactions.filter(r =>
+                    !r.isTrashed
+                    && !r.isPaused
+                    && r.priority > 0
+                    && !hasSeedRepeated(r.reactionSeed)),
                 r => r.priority,
                 Math.random(),
             );
