@@ -11,7 +11,9 @@ export default function Component() {
             padding: "1em",
         }, retroThemeCss]}>
             Hello World from {import.meta.url}
-            <ReactorView />
+            {Array.from({ length: 10 }).map((_, i) => <div key={i}>
+                {i}: <ReactorView />
+            </div>)}
             {/* <ReactionOutputRegisterView /> */}
             <div css={{
                 display: "flex",

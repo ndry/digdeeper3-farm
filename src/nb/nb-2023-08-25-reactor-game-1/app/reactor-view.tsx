@@ -2,71 +2,93 @@ import { useLayoutEffect, useMemo, useState } from "react";
 import { jsx } from "@emotion/react";
 import { useRecoilState } from "recoil";
 import { reactionsRecoil } from "./reactions-recoil";
-import update from "immutability-helper";
-import { ReactionCard } from "../model/reaction-card";
-import { ReactionOutput, hasSeedRepeated, registerReactionOutput } from "../model/reaction-output-registry";
+import { ReactionOutput, getLatestOutput, registerReactionOutput } from "../model/reaction-output-registry";
+import { ReactorWorkerJob } from "../model/reactor.worker";
+import { selectByWeight } from "../../../utils/select-by-weight";
 
 export const runByDefault =
     new URL(location.href).searchParams.get("run") == "1";
 
+
 export function ReactorView({
     ...props
-}: jsx.JSX.IntrinsicElements["div"]) {
+}: jsx.JSX.IntrinsicElements["span"]) {
     const [renderTrigger, setRenderTrigger] = useState(0);
-    const [perf, setPerf] = useState<{
+    const [metrics, setMetrics] = useState<{
         perf: number,
         steps: number,
+        esimatedIdleTime: number,
     }>();
     const [isRunning, setIsRunning] = useState(runByDefault);
     const [reactions, setReactions] = useRecoilState(reactionsRecoil);
 
     const reactorWorker = useMemo(() => {
-        const reactorWorker = new Worker(
+        if (!isRunning) { return; }
+        const w = new Worker(
             new URL("../model/reactor.worker.ts", import.meta.url),
             { type: "module" });
-        reactorWorker.onmessage = (ev: MessageEvent<{
-            type: "tick",
-            perf: number,
-            steps: number,
-        } | {
-            type: "reactionOutput",
-            reactionOutput: ReactionOutput,
+        w.addEventListener("message", (ev: MessageEvent<{
+            type: "jobCompletion",
+            job: ReactorWorkerJob,
+            outputs: ReactionOutput[],
+            metrics: {
+                perf: number,
+                steps: number,
+                esimatedIdleTime: number,
+            }
         }>) => {
             const data = ev.data;
-            if (data.type === "tick") {
-                setPerf({
-                    perf: data.perf,
-                    steps: data.steps,
-                });
-                setRenderTrigger(x => x + 1);
-                return;
+            if (data.type !== "jobCompletion") { return; }
+            const latestOuput = getLatestOutput(data.job.refReactionSeed);
+            for (const output of data.outputs) {
+                registerReactionOutput(output);
+                if (latestOuput) {
+                    registerReactionOutput({
+                        seed: data.job.refReactionSeed,
+                        t: output.t + latestOuput.t,
+                        output: output.output,
+                        tags: output.tags,
+                    });
+                }
             }
-            if (data.type === "reactionOutput") {
-                registerReactionOutput(data.reactionOutput);
-            }
-        }
-        return reactorWorker;
-    }, [setReactions, setRenderTrigger, setPerf]);
+            setMetrics(data.metrics);
+            setRenderTrigger(x => x + 1);
+        });
+        return w;
+    }, [setReactions, setRenderTrigger, setMetrics, isRunning]);
 
-    useLayoutEffect(
-        () => reactorWorker.postMessage({
-            type: "isRunning",
-            isRunning,
-        }),
-        [reactorWorker, isRunning]);
-    useLayoutEffect(
-        () => reactorWorker.postMessage({
-            type: "reactions",
-            reactions: reactions
-                .filter(r => !r.isPaused
-                    && !r.isTrashed
-                    && !hasSeedRepeated(r.reactionSeed)
-                    && r.priority > 0),
-        }),
-        [reactorWorker, reactions]);
-    useLayoutEffect(() => () => reactorWorker.terminate(), [reactorWorker]);
+    useLayoutEffect(() => {
+        const w = reactorWorker;
+        if (!w) { return; }
+        const l = (ev: MessageEvent<{
+            type: "jobRequest",
+        }>) => {
+            const data = ev.data;
+            if (data.type !== "jobRequest") { return; }
+            const rc = selectByWeight(
+                reactions,
+                r => r.priority,
+                Math.random(),
+            );
+            const latestOuput = getLatestOutput(rc.reactionSeed);
+            w.postMessage({
+                type: "job",
+                job: {
+                    refReactionSeed: rc.reactionSeed,
+                    reactionSeed: latestOuput?.output ?? rc.reactionSeed,
+                },
+            });
+        };
+        w.addEventListener("message", l);
+        return () => { w.removeEventListener("message", l); }
+    }, [reactorWorker, reactions]);
+    useLayoutEffect(() => {
+        const w = reactorWorker;
+        if (!w) { return; }
+        () => w.terminate();
+    }, [reactorWorker]);
 
-    return <div {...props}>
+    return <span {...props}>
         Reactor
         &nbsp;/&nbsp;
         <button onClick={() => setIsRunning(x => !x)}>
@@ -74,15 +96,17 @@ export function ReactorView({
         </button>
         &nbsp;/&nbsp;
         render: {renderTrigger}
-        {perf && <>
+        {metrics && <>
             &nbsp;/&nbsp;
-            perf: {formatWithSuffix(perf.steps)}
-            &nbsp;steps per {perf.perf.toFixed(2)}ms
-            ={formatWithSuffix(perf.steps / perf.perf * 1000)}Hz
+            perf: {formatWithSuffix(metrics.steps)}
+            &nbsp;steps per {metrics.perf.toFixed(2)}ms
+            ={formatWithSuffix(metrics.steps / metrics.perf * 1000)}Hz
+            &nbsp;/&nbsp;
+            estimated idle time: {metrics.esimatedIdleTime.toFixed(2)}ms
         </>}
 
         <br />
-    </div>;
+    </span>;
 }
 
 export function formatWithSuffix(n: number): string {
