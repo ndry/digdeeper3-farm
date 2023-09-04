@@ -10,7 +10,7 @@ export type ReactorWorkerJob = {
 
 
 
-const dt = 3_000_000;
+const dt = 1_000_000;
 
 let jobRequestTime = -1;
 function performJob(job: ReactorWorkerJob) {
@@ -42,16 +42,11 @@ function performJob(job: ReactorWorkerJob) {
 }
 
 onmessage = (ev: MessageEvent<{
-    type: "isRunning",
-    isRunning: boolean,
-} | {
     type: "job",
     job: ReactorWorkerJob,
 }>) => {
-    if (ev.data.type === "job") {
-        performJob(ev.data.job);
-        return;
-    }
+    if (ev.data.type !== "job") { return; }
+    performJob(ev.data.job);
 };
 
 jobRequestTime = performance.now();

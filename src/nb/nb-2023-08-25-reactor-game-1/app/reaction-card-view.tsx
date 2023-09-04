@@ -1,6 +1,6 @@
 import { jsx } from "@emotion/react";
 import update, { Spec } from "immutability-helper";
-import { ReactionCard } from "../model/reaction-card";
+import { ReactionCard } from "./reaction-card";
 import { JsonButton } from "../../nb-2023-08-13-reactor-game/json-button";
 import { StateProp } from "../../../utils/reactish/state-prop";
 import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview";

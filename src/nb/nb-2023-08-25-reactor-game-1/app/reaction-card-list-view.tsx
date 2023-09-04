@@ -58,13 +58,16 @@ export function ReactionCardListView({
     ) : filteredReactions;
     return <div {...props}>
         <p css={{ margin: "0 0 0.4em 0" }}>
-            steps:&nbsp;{formatWithSuffix(getStepIndicators(reactions).steps)}
+            steps:&nbsp;{formatWithSuffix(getStepIndicators(
+                reactions.map(r => r.reactionSeed)).steps)}
             &nbsp;
             repeatAt:&nbsp;
-            {formatWithSuffix(getStepIndicators(reactions).repeatAt)}
+            {formatWithSuffix(getStepIndicators(
+                reactions.map(r => r.reactionSeed)).repeatAt)}
             &nbsp;
             stepRatio:&nbsp;
-            {formatWithSuffix(getStepIndicators(reactions).stepRatio)}
+            {formatWithSuffix(getStepIndicators(
+                reactions.map(r => r.reactionSeed)).stepRatio)}
         </p>
         <select value={filter} onChange={e => setFilter(e.target.value as any)}>
             <option value="run-pool">run-pool</option>

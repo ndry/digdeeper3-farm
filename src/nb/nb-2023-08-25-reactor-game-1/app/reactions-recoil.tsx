@@ -3,7 +3,7 @@ import { _never } from "../../../utils/_never";
 import update from "immutability-helper";
 import { ca237v1FromSeed } from "../../nb-2023-08-13-reactor-game/ca237v1-from-seed";
 import { HmacSHA256 } from "crypto-js";
-import { ReactionCard } from "../model/reaction-card";
+import { ReactionCard } from "./reaction-card";
 import { parseTable } from "../../../ca237v1/rule-io";
 import * as ReactionSeed from "../model/reaction-seed";
 
