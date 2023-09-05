@@ -83,3 +83,14 @@ export const getLatestOutput = (reactionSeed: ReactionSeed) =>
 export const getRepeatedAt = (reactionSeed: ReactionSeed) =>
     reactionOutputRegistry[reactionSeed]?.outputs
         .find(o => o.tags.includes("repeat"))?.t;
+
+export const getCycleLength = (reactionSeed: ReactionSeed) => {
+    const rg = reactionOutputRegistry[reactionSeed];
+    if (!rg) { return undefined; }
+    const outputs = rg.outputs;
+    const repeatAt = outputs.find(o => o.tags.includes("repeat"))?.t;
+    if (repeatAt === undefined) { return undefined; }
+    const repeatStartAt = outputs.find(o => o.tags.includes("repeat-start"))?.t;
+    if (repeatStartAt === undefined) { return undefined; }
+    return repeatAt - repeatStartAt;
+};

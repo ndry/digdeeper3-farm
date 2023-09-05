@@ -5,7 +5,7 @@ import { reactionsRecoil, useGenerateReactionSeeds } from "./reactions-recoil";
 import { ReactionCardView as _ReactionCardView } from "./reaction-card-view";
 import { memo, useLayoutEffect, useState } from "react";
 import { getWidestSingleColorZone } from "../model/get-widest-single-color-zone";
-import { getRepeatedAt, hasSeedRepeated, subscribeToReactionOutputGlobal } from "../model/reaction-output-registry";
+import { getCycleLength, getRepeatedAt, hasSeedRepeated, subscribeToReactionOutputGlobal } from "../model/reaction-output-registry";
 import { getStepIndicators } from "../model/get-step-indicators";
 import { formatWithSuffix } from "./reactor-view";
 
@@ -32,7 +32,7 @@ export function ReactionCardListView({
         "run-pool",
         "repeated",
         "trashed",
-    ][num] as "run-pool" | "trashed" | "repeated" | "custom" | "all");
+    ][num] as "run-pool" | "trashed" | "repeated" | "custom" | "all" | "repeated-by-clen");
     const filteredReactions = (() => {
         switch (filter) {
             case "run-pool": return reactions
@@ -43,8 +43,13 @@ export function ReactionCardListView({
             case "repeated": return reactions
                 .filter(r => hasSeedRepeated(r.reactionSeed))
                 .toSorted((a, b) =>
-                    getRepeatedAt(a.reactionSeed)!
-                    - getRepeatedAt(b.reactionSeed)!);
+                    getRepeatedAt(b.reactionSeed)!
+                    - getRepeatedAt(a.reactionSeed)!);
+            case "repeated-by-clen": return reactions
+                .filter(r => hasSeedRepeated(r.reactionSeed))
+                .toSorted((a, b) =>
+                    (getCycleLength(b.reactionSeed) ?? 0)
+                    - (getCycleLength(a.reactionSeed) ?? 0));
             case "all":
             default:
                 return reactions;
@@ -75,6 +80,7 @@ export function ReactionCardListView({
             <option value="paused">paused</option>
             <option value="trashed">trashed</option>
             <option value="repeated">repeated</option>
+            <option value="repeated-by-clen">repeated-by-clen</option>
             <option value="custom">custom</option>
         </select>
         <label css={{

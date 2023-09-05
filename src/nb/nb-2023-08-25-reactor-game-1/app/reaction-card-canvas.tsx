@@ -12,9 +12,9 @@ export const colorMap = [
 
 
 export function ReactionCardCanvas({
-    last281, table, ...props
+    start281, table, ...props
 }: jsx.JSX.IntrinsicElements["canvas"] & {
-    last281: Uint8Array,
+    start281: Uint8Array,
     table: number[]
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -32,7 +32,7 @@ export function ReactionCardCanvas({
         const ctx = canvasEl.getContext("2d");
         if (!ctx) { return; }
 
-        spacetime.set(last281);
+        spacetime.set(start281);
         fillPrestartedSpacetime81Pbc(spacetime, table);
 
         for (let t = 0; t < imageData.width; t++) {
@@ -45,7 +45,7 @@ export function ReactionCardCanvas({
         canvasEl.width = imageData.width;
         canvasEl.height = imageData.height;
         ctx.putImageData(imageData, 0, 0);
-    }, [last281, table, imageData32, spacetime]);
+    }, [start281, table, imageData32, spacetime]);
 
     return <canvas ref={canvasRef} {...props} />;
 }

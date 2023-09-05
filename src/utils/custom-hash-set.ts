@@ -59,6 +59,21 @@ export class CustomHashSet<T, THash> {
         return false;
     }
 
+    get(el: T) {
+        const hash = this._hashFn(el);
+        const bucket = this._buckets.get(hash);
+        if (bucket) {
+            if (isBucket(bucket)) {
+                for (const bel of bucket) {
+                    if (this._equalsFn(el, bel)) { return bel; }
+                }
+            } else {
+                if (this._equalsFn(el, bucket)) { return bucket; }
+            }
+        }
+        return undefined;
+    }
+
     /**
      * @returns `true` if the set size changed
      *   (i.e. the element was not already in the set)

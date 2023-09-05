@@ -39,6 +39,20 @@ const twoSpace81Equals = (a: OffsetOnSpacetime, b: OffsetOnSpacetime) => {
     return true;
 };
 
+export const findRepeatFast = (spacetime: Uint8Array) => {
+    const last = { spacetime, offset: spacetime.length - 162 };
+    const lashHash = twoSpace81HashFast(last);
+    const endT = Math.floor(spacetime.length / 81) - 2;
+    for (let t = 0; t < endT; t++) {
+        const chech = { spacetime, offset: t * 81 };
+        if (lashHash !== twoSpace81HashFast(chech)) { continue; }
+        if (!twoSpace81Equals(last, chech)) { continue; }
+        return t;
+    }
+    return -1;
+};
+
+
 export const findRepeat = (
     spacetime: Uint8Array,
     startT = 0,
@@ -50,12 +64,14 @@ export const findRepeat = (
         // verbose: true,
     });
     for (let t = startT; t < endT - 1; t++) {
-        const wasAbsent = sSet.add({
-            spacetime: spacetime, offset: t * 81,
-        });
+        const x = { spacetime, offset: t * 81 };
+        const wasAbsent = sSet.add(x);
         if (!wasAbsent) {
-            return t;
+            return {
+                rerepatStartAt: sSet.get(x)!.offset / 81,
+                repeatAt: t,
+            };
         }
     }
-    return -1;
+    return undefined;
 };

@@ -6,10 +6,10 @@ import { StateProp } from "../../../utils/reactish/state-prop";
 import { LinkCaPreview } from "../../nb-2023-08-13-reactor-game/link-ca-preview";
 import { ReactionCardCanvas } from "./reaction-card-canvas";
 import { parseTable } from "../../../ca237v1/rule-io";
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 import { getWidestSingleColorZone } from "../model/get-widest-single-color-zone";
 import * as ReactionSeed from "../model/reaction-seed";
-import { ReactionOutput, reactionOutputRegistry, subscribeToReactionOutput } from "../model/reaction-output-registry";
+import { ReactionOutput, getCycleLength, reactionOutputRegistry, subscribeToReactionOutput } from "../model/reaction-output-registry";
 
 
 const update1 = <T,>(spec: Spec<T>) => (obj: T) => update(obj, spec);
@@ -56,7 +56,7 @@ export function ReactionCardView({
     const outputs = [
         {
             seed: reactionSeed,
-            t: 2,
+            t: 0,
             output: reactionSeed,
             tags: ["start"],
         } as ReactionOutput,
@@ -70,11 +70,13 @@ export function ReactionCardView({
 
     const [mark, setMark] = useState(-1);
     useLayoutEffect(() => {
-        if (mark === -1 && marks.some(m => m.includes("repeat"))) {
-            setMark(marks.findIndex(m => m.includes("repeat")));
+        if (mark === -1 && marks.some(m => m.includes("prerepeat"))) {
+            setMark(marks.findIndex(m => m.includes("prerepeat")));
         }
     }, [mark, marks]);
     const theMark = mark === -1 ? outputs.length - 1 : mark;
+
+    const cycleLen = useMemo(() => getCycleLength(reactionSeed), [outputs]);
 
     const last281 = new Uint8Array([
         ...parseTable(ReactionSeed.getReagent0(outputs[theMark].output)),
@@ -119,7 +121,7 @@ export function ReactionCardView({
         <span> Max color matches:&nbsp;{maxColorMatches} </span>
         <br />
         <ReactionCardCanvas
-            last281={last281}
+            start281={last281}
             table={parseTable(rule)}
         />
         <br />
@@ -129,5 +131,6 @@ export function ReactionCardView({
                 {marks
                     .map((mark, i) => <option key={i} value={i}>{mark}</option>)}
             </select>}
+        &nbsp;/&nbsp;clen: {cycleLen}
     </div>;
 }

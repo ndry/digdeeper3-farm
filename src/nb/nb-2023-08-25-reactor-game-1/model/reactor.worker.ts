@@ -10,7 +10,7 @@ export type ReactorWorkerJob = {
 
 
 
-const dt = 1_000_000;
+const dt = 100_000;
 
 let jobRequestTime = -1;
 function performJob(job: ReactorWorkerJob) {
@@ -22,7 +22,7 @@ function performJob(job: ReactorWorkerJob) {
         job.reactionSeed,
         {
             dt,
-            reactionRepeatSearchWindow: 1500,
+            reactionRepeatSearchWindow: 10_000,
         });
 
     jobRequestTime = performance.now();
