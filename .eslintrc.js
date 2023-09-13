@@ -20,11 +20,7 @@ module.exports = {
         // "linebreak-style": ["warn", "unix"], // enforced by git
         "quotes": ["warn", "double"],
         "semi": ["warn", "always"],
-        "max-nested-callbacks": ["warn", 2],
-        "max-len": ["warn", 80, {
-            "ignorePattern": "(^im|ex)port\\s.+\\sfrom\\s.+;$",
-            "ignoreUrls": true,
-        }],
+        "max-nested-callbacks": ["warn", 3],
         "comma-dangle": ["warn", "always-multiline"],
         "no-warning-comments": ["warn"],
         // "no-console": ["warn", { allow: ["warn", "error"] }],
